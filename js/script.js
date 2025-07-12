@@ -11,63 +11,25 @@ let logs = JSON.parse(localStorage.getItem("logs") || "[]");
 
 const testScenarios = [
   {
-    title: "Armed Response Panic",
-    procedure: "Follow the Armed Response SOP.",
+    title: "Gas Leak in Control Room",
+    procedure: "Follow Emergency Evacuation SOP-GAS-17.",
     steps: [
-      "Acknoladged Alarm",
-      "Contacted User",
-      "Quolified Alarm",
-      "Acivate Response Unit",
-      "Notify Managment",
-      "Log Incident Report",
-      "Complete / Terminate Incident"
+      { text: "Evacuate the control room" },
+      { text: "______", fill: true },
+      { text: "Shut off gas valves" },
+      { text: "______", fill: true }
     ]
   },
   {
-    title: "Medical Response Panic",
-    procedure: "Follow the Armed Response SOP.",
+    title: "Chemical Spill in Lab 2",
+    procedure: "Initiate Decontamination Procedure SOP-CHEM-12.",
     steps: [
-      "Contacted individual",
-      "Qualify Alert",
-      "Alert Transfered to Medical Responder",
-      "Notify Managment",
-      "Log Incident Report",
-      "Complete / Terminate Incident"
+      { text: "______", fill: true },
+      { text: "Use spill kit" },
+      { text: "Notify hazardous material team" },
+      { text: "______", fill: true }
     ]
   },
-  {
-    title: "Fire Alert",
-    procedure: "Escalate to Fire Department.",
-    steps: [
-      "Alert Acknoladged",
-      "Threat Confirmed",
-      "Alert Tranfered / Assigned to Fire Responder",
-      "Incident Report Logged"
-    ]
-  },
-  {
-    title: "MVA - Motor Vehile Accident",
-    procedure: "Follow Emergancy SOP.",
-    steps: [
-      "Contacted User",
-      "Confirm Status of Accident",
-      "Transfer Alert to Medical Responder",
-      "Confirm recieved alert with Medical Responder",
-      "Make followup calls to User",
-      "Log Incident Report"
-    ]
-  },
-  {
-    title: "Domestic Violance",
-    procedure: "Follow Emergancy SOP",
-    steps: [
-      "Contact user",
-      "Qualify Alert",
-      "Response Assigned to SAPS",
-      "Make Follwup Calls to User",
-      "og Incident Report",
-    ]
-  }
 ];
 let inactivityLimit = getRandomInactivityLimit();
 function getRandomInactivityLimit() {
@@ -121,12 +83,27 @@ function triggerTestScenario() {
   if (testAlertActive || !operator) return;
 
   const scenario = testScenarios[Math.floor(Math.random() * testScenarios.length)];
+
+  // Clone steps to avoid modifying original scenario
+  const randomizedSteps = scenario.steps.map(step => ({ ...step, fill: false }));
+
+  // Randomly choose 1 to 3 steps to make into blanks
+  const blanksToFill = Math.floor(Math.random() * 2) + 1;
+  const indexes = Array.from(randomizedSteps.keys());
+  const shuffled = indexes.sort(() => 0.5 - Math.random());
+  const selected = shuffled.slice(0, blanksToFill);
+
+  selected.forEach(index => {
+    randomizedSteps[index].fill = true;
+    randomizedSteps[index].text = "______";
+  });
+
   testScenarioText.innerHTML = `<strong>${scenario.title}</strong><br>${scenario.procedure}`;
   checklistContainer.innerHTML = "";
   checklistContainer.style.display = "none";
   closeButton.disabled = true;
   ackButton.style.display = "inline-block";
-  checklistContainer.dataset.steps = JSON.stringify(scenario.steps);
+  checklistContainer.dataset.steps = JSON.stringify(randomizedSteps);
   slaTimerDisplay.textContent = "⏱ Acknowledge within 10 seconds...";
   testModal.style.display = "flex";
   testModal.classList.add("active");
@@ -163,10 +140,24 @@ function acknowledgeTest() {
 
   const steps = JSON.parse(checklistContainer.dataset.steps);
   checklistContainer.innerHTML = "";
+
   steps.forEach((step, index) => {
     const item = document.createElement("div");
-    item.innerHTML = `<input type="checkbox" id="chk${index}" onchange="checkChecklist()">
-                      <label for="chk${index}"> ${step}</label>`;
+    const stepId = `chk${index}`;
+
+    if (step.fill) {
+      item.innerHTML = `
+        <label for="${stepId}">Step ${index + 1}:</label><br>
+        <input type="text" id="${stepId}_input" placeholder="Describe your action" oninput="checkChecklist()">
+        <input type="checkbox" id="${stepId}" onchange="checkChecklist()"> Confirm
+      `;
+    } else {
+      item.innerHTML = `
+        <input type="checkbox" id="${stepId}" onchange="checkChecklist()">
+        <label for="${stepId}"> ${step.text}</label>
+      `;
+    }
+
     checklistContainer.appendChild(item);
   });
 
@@ -180,7 +171,11 @@ function acknowledgeTest() {
 function checkChecklist() {
   const checkboxes = checklistContainer.querySelectorAll("input[type='checkbox']");
   const allChecked = Array.from(checkboxes).every(chk => chk.checked);
-  closeButton.disabled = !allChecked;
+
+  const inputs = checklistContainer.querySelectorAll("input[type='text']");
+  const allFilled = Array.from(inputs).every(input => input.value.trim() !== "");
+
+  closeButton.disabled = !(allChecked && allFilled);
 }
 
 function closeTestAlert() {
