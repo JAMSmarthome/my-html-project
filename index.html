@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Emergency Operator Test Platform</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Login -->
+  <div id="loginContainer">
+    <h2>Operator Login</h2>
+    <input type="text" id="operatorName" placeholder="Enter your name" />
+    <button onclick="loginOperator()">Login</button>
+  </div>
+
+  <!-- Main Interface -->
+  <div id="mainUI" style="display:none;">
+    <h1>Welcome, <span id="currentOperator"></span></h1>
+    <button onclick="logRealEvent()">Log Real Emergency</button>
+    <button onclick="exportCSV()">Export Report (CSV)</button>
+    <div id="log"><strong>Log Output:</strong><br></div>
+  </div>
+
+  <!-- Test Alert Modal -->
+  <div id="testModal">
+    <div id="testBox">
+      <h3>🚨 Test Scenario Triggered</h3>
+      <p id="testScenario"></p>
+      <div id="slaTimer"></div>
+      <div id="checklist" style="margin-top: 15px;"></div>
+      <button id="ackBtn" onclick="acknowledgeTest()">Acknowledge and Start</button>
+      <button id="closeAlert" onclick="closeTestAlert()" disabled>Close Alert</button>
+    </div>
+  </div>
+
+  <script src="js/script.js"></script>
+</body>
+</html>
