@@ -27,23 +27,33 @@ let logs = [];
 
 const testScenarios = [
   {
-    title: "Gas Leak in Control Room",
-    procedure: "SOP-GAS-17",
+    title: "Armed Response",
+    procedure: "SOP-AR1",
     steps: [
-      "Evacuate the control room",
-      "Shut off gas valves",
-      "Notify safety supervisor",
-      "Log the event"
+      "Acknowladge Alert",
+      "Contact User",
+      "Qualify Alert",
+      "Assign Response Team",
+      "Make followup calls",
+      "Inform Managment",
+      "Record Incedent Details",
+      "Submit IR Report",
+      "Complete Incident"
     ]
   },
   {
-    title: "Chemical Spill in Lab 2",
-    procedure: "SOP-CHEM-12",
+    title: "Medical Response",
+    procedure: "SOP-MR1",
     steps: [
-      "Initiate containment",
-      "Use chemical spill kit",
-      "Alert hazmat team",
-      "Record incident details"
+      "Acknowladge Alert",
+      "Contact User",
+      "Qualify Alert",
+      "Assign to Medical Response",
+      "Make followup calls",
+      "Inform Managment",
+      "Record Incedent Details",
+      "Submit IR Report",
+      "Complete Incident"
     ]
   }
 ];
@@ -179,15 +189,42 @@ function checkChecklist() {
 
 function closeTestAlert() {
   const duration = ((Date.now() - checklistStartTime) / 1000).toFixed(1);
-  let entry = `✅ Alert closed. Checklist duration: ${duration}s.`;
 
-  if (slaViolated && slaReason.value.trim()) {
-    entry += ` SLA Miss Reason: ${slaReason.value.trim()}`;
-  } else if (slaViolated) {
+  const steps = [];
+  checklistContainer.querySelectorAll(".checklist-item").forEach((item, i) => {
+    const input = item.querySelector("input[type='text']");
+    const checkbox = item.querySelector("input[type='checkbox']");
+    if (input) {
+      steps.push({
+        text: input.placeholder || "",
+        input: input.value.trim(),
+        manual: true
+      });
+    } else if (checkbox) {
+      const label = item.querySelector("label");
+      steps.push({
+        text: label?.innerText || "",
+        manual: false
+      });
+    }
+  });
+
+  let entry = `✅ Alert closed. Checklist duration: ${duration}s.`;
+  let reason = slaViolated && slaReason.value.trim() ? slaReason.value.trim() : "";
+
+  if (slaViolated && !reason) {
     slaReason.classList.remove("hidden");
     slaReason.focus();
     return;
   }
+
+  logs.push({
+    time: new Date().toLocaleTimeString(),
+    message: entry,
+    slaViolated,
+    slaReason: reason,
+    checklistSteps: steps
+  });
 
   log(entry);
   testModal.classList.add("hidden");
@@ -197,15 +234,47 @@ function closeTestAlert() {
 }
 
 function exportCSV() {
-  let csv = "Time,Message\n";
+  let csv = [
+    "Timestamp",
+    "Event Type",
+    "SLA Status",
+    "SLA Reason",
+    "Scenario Title",
+    "Checklist Summary",
+    "Operator Name"
+  ].join(",") + "\n";
+
   logs.forEach(log => {
-    csv += `${log.time},"${log.message.replace(/"/g, '""')}"\n`;
+    const timestamp = log.time || "";
+    const type = log.type || (log.isTest ? "Test" : "Real");
+    const slaStatus = log.slaViolated ? "Missed" : "Met";
+    const slaReason = log.slaViolated && log.slaReason ? log.slaReason : "";
+    const title = log.scenarioTitle || "";
+    const checklistSummary = Array.isArray(log.checklistSteps)
+      ? log.checklistSteps.map(step =>
+          step.manual
+            ? `[MANUAL] ${step.input || step.text}`
+            : step.text
+        ).join(" | ")
+      : "";
+    const operator = log.operator || "";
+
+    csv += [
+      `"${timestamp}"`,
+      `"${type}"`,
+      `"${slaStatus}"`,
+      `"${slaReason}"`,
+      `"${title}"`,
+      `"${checklistSummary}"`,
+      `"${operator}"`
+    ].join(",") + "\n";
   });
+
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `operator-log-${new Date().toISOString()}.csv`;
+  a.download = `emergency-log-${new Date().toISOString().slice(0,19).replace(/:/g, "-")}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
