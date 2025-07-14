@@ -1,232 +1,223 @@
-const logArea = document.getElementById("log");
-const testModal = document.getElementById("testModal");
-const testScenarioText = document.getElementById("testScenario");
-const checklistContainer = document.getElementById("checklist");
-const closeButton = document.getElementById("closeAlert");
-const ackButton = document.getElementById("ackBtn");
-const slaTimerDisplay = document.getElementById("slaTimer");
-
 let operator = "";
-let logs = JSON.parse(localStorage.getItem("logs") || "[]");
+let testAlertActive = false;
+let slaViolated = false;
+let testTriggeredTime = null;
+let checklistStartTime = null;
+let ackTimer, slaCountdown;
+
+const inactivityMin = 10 * 1000;
+const inactivityMax = 60 * 1000;
+let inactivityLimit = getRandomInactivityTime();
+
+const logBox = document.getElementById("log");
+const loginSection = document.getElementById("loginSection");
+const mainConsole = document.getElementById("mainConsole");
+const testModal = document.getElementById("testModal");
+const testScenarioTitle = document.getElementById("testScenarioTitle");
+const testProcedure = document.getElementById("testProcedure");
+const slaTimerDisplay = document.getElementById("slaTimerDisplay");
+const ackButton = document.getElementById("ackButton");
+const checklistSection = document.getElementById("checklistSection");
+const checklistContainer = document.getElementById("checklist");
+const slaReason = document.getElementById("slaReason");
+const closeButton = document.getElementById("closeAlert");
+
+let lastRealEventTime = Date.now();
+let logs = [];
 
 const testScenarios = [
   {
     title: "Gas Leak in Control Room",
-    procedure: "Follow Emergency Evacuation SOP-GAS-17.",
+    procedure: "SOP-GAS-17",
     steps: [
-      { text: "Evacuate the control room" },
-      { text: "______", fill: true },
-      { text: "Shut off gas valves" },
-      { text: "______", fill: true }
+      "Evacuate the control room",
+      "Shut off gas valves",
+      "Notify safety supervisor",
+      "Log the event"
     ]
   },
   {
     title: "Chemical Spill in Lab 2",
-    procedure: "Initiate Decontamination Procedure SOP-CHEM-12.",
+    procedure: "SOP-CHEM-12",
     steps: [
-      { text: "______", fill: true },
-      { text: "Use spill kit" },
-      { text: "Notify hazardous material team" },
-      { text: "______", fill: true }
+      "Initiate containment",
+      "Use chemical spill kit",
+      "Alert hazmat team",
+      "Record incident details"
     ]
-  },
+  }
 ];
-let inactivityLimit = getRandomInactivityLimit();
-function getRandomInactivityLimit() {
-  const min = 10 * 1000; // 10 seconds
-  const max = 30 * 1000; // 30 seconds
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-let lastRealEventTime = Date.now();
-let testAlertActive = false;
-let checklistStartTime = null;
-let ackTimer = null;
-let slaCountdown = null;
-let slaViolated = false;
-let testTriggeredTime = null;
-const slaAcknowledgeLimit = 10 * 1000;
 
 function loginOperator() {
-  const nameInput = document.getElementById("operatorName").value.trim();
-  if (!nameInput) {
-    alert("Please enter your name.");
-    return;
-  }
-  operator = nameInput;
-  document.getElementById("currentOperator").textContent = operator;
-  document.getElementById("loginContainer").style.display = "none";
-  document.getElementById("mainUI").style.display = "block";
-  log(`👤 Operator "${operator}" logged in.`, "INFO");
-}
-
-function log(message, type = "INFO") {
-  const timestamp = new Date().toLocaleTimeString();
-  const entry = { time: timestamp, operator, message, type };
-  logs.push(entry);
-  localStorage.setItem("logs", JSON.stringify(logs));
-  logArea.innerHTML += `[${timestamp}] ${message}<br>`;
-  logArea.scrollTop = logArea.scrollHeight;
+  const name = document.getElementById("operatorName").value.trim();
+  if (!name) return alert("Please enter your name");
+  operator = name;
+  loginSection.classList.add("hidden");
+  mainConsole.classList.remove("hidden");
+  document.getElementById("loggedInOperator").textContent = operator;
+  log(`👤 Operator ${operator} signed in.`);
 }
 
 function logRealEvent() {
-  if (!testAlertActive) {
-    lastRealEventTime = Date.now();
-    inactivityLimit = getRandomInactivityLimit();
-    log("✅ Real emergency logged.", "REAL");
-  } else {
-    log("⚠️ Real event ignored until test alert is closed.", "WARNING");
-  }
+  lastRealEventTime = Date.now();
+  log("✅ Real emergency logged.");
+  inactivityLimit = getRandomInactivityTime();
+}
+
+function log(message) {
+  const time = new Date().toLocaleTimeString();
+  logBox.innerHTML += `[${time}] ${message}<br>`;
+  logBox.scrollTop = logBox.scrollHeight;
+  logs.push({ time, message });
+  localStorage.setItem("emergencyLogs", JSON.stringify(logs));
 }
 
 function triggerTestScenario() {
   if (testAlertActive || !operator) return;
-
   const scenario = testScenarios[Math.floor(Math.random() * testScenarios.length)];
+  const randomizedSteps = scenario.steps.map(step => ({ text: step, fill: false }));
 
-  // Clone steps to avoid modifying original scenario
-  const randomizedSteps = scenario.steps.map(step => ({ ...step, fill: false }));
-
-  // Randomly choose 1 to 3 steps to make into blanks
-  const blanksToFill = Math.floor(Math.random() * 2) + 1;
-  const indexes = Array.from(randomizedSteps.keys());
-  const shuffled = indexes.sort(() => 0.5 - Math.random());
-  const selected = shuffled.slice(0, blanksToFill);
-
-  selected.forEach(index => {
-    randomizedSteps[index].fill = true;
-    randomizedSteps[index].text = "______";
+  const blankCount = Math.floor(Math.random() * 3) + 1;
+  const indices = [...randomizedSteps.keys()].sort(() => 0.5 - Math.random()).slice(0, blankCount);
+  indices.forEach(i => {
+    randomizedSteps[i].fill = true;
+    randomizedSteps[i].text = "______";
   });
 
-  testScenarioText.innerHTML = `<strong>${scenario.title}</strong><br>${scenario.procedure}`;
   checklistContainer.innerHTML = "";
-  checklistContainer.style.display = "none";
-  closeButton.disabled = true;
-  ackButton.style.display = "inline-block";
   checklistContainer.dataset.steps = JSON.stringify(randomizedSteps);
+  checklistSection.classList.add("hidden");
+  closeButton.disabled = true;
+  slaReason.classList.add("hidden");
+  slaReason.value = "";
+
+  testScenarioTitle.textContent = scenario.title;
+  testProcedure.textContent = scenario.procedure;
   slaTimerDisplay.textContent = "⏱ Acknowledge within 10 seconds...";
-  testModal.style.display = "flex";
-  testModal.classList.add("active");
+  ackButton.style.display = "block";
+
+  testModal.classList.remove("hidden");
+  testModal.querySelector(".modal-box").classList.add("flashing");
+
   testAlertActive = true;
   slaViolated = false;
   testTriggeredTime = Date.now();
 
   ackTimer = setTimeout(() => {
     slaViolated = true;
-    slaTimerDisplay.textContent = "❌ SLA missed: Acknowledge is late!";
-    log("⏱️ SLA missed: Operator did not acknowledge alert within 10 seconds.", "SLA");
-  }, slaAcknowledgeLimit);
+    slaTimerDisplay.textContent = "❌ SLA missed!";
+    log("⏱️ SLA missed: No acknowledgment within 10s.");
+  }, 10000);
 
-  let remaining = 10;
+  let countdown = 10;
   slaCountdown = setInterval(() => {
-    remaining--;
-    if (remaining >= 0 && !slaViolated) {
-      slaTimerDisplay.textContent = `⏱ ${remaining}s to acknowledge alert...`;
-    }
-    if (remaining <= 0) clearInterval(slaCountdown);
+    countdown--;
+    if (!slaViolated && countdown >= 0)
+      slaTimerDisplay.textContent = `⏱ ${countdown}s to acknowledge...`;
+    if (countdown <= 0) clearInterval(slaCountdown);
   }, 1000);
 
-  log("⚠️ No real activity. Triggering test scenario.", "TEST");
+  log("⚠️ Triggering random test scenario.");
 }
 
 function acknowledgeTest() {
   clearTimeout(ackTimer);
   clearInterval(slaCountdown);
   checklistStartTime = Date.now();
+
   ackButton.style.display = "none";
-  checklistContainer.style.display = "block";
-  slaTimerDisplay.textContent = "";
-  testModal.classList.remove("active");
+  checklistSection.classList.remove("hidden");
+  testModal.querySelector(".modal-box").classList.remove("flashing");
 
   const steps = JSON.parse(checklistContainer.dataset.steps);
   checklistContainer.innerHTML = "";
 
   steps.forEach((step, index) => {
-    const item = document.createElement("div");
-    const stepId = `chk${index}`;
+    const div = document.createElement("div");
+    div.className = "checklist-item";
 
     if (step.fill) {
-      item.innerHTML = `
-        <label for="${stepId}">Step ${index + 1}:</label><br>
-        <input type="text" id="${stepId}_input" placeholder="Describe your action" oninput="checkChecklist()">
-        <input type="checkbox" id="${stepId}" onchange="checkChecklist()"> Confirm
-      `;
+      div.innerHTML = `
+        <input type="text" placeholder="Describe your action" id="stepInput${index}" oninput="checkChecklist()">`;
     } else {
-      item.innerHTML = `
-        <input type="checkbox" id="${stepId}" onchange="checkChecklist()">
-        <label for="${stepId}"> ${step.text}</label>
-      `;
+      div.innerHTML = `
+        <input type="checkbox" id="chk${index}" onchange="checkChecklist()">
+        <label>${step.text}</label>`;
     }
 
-    checklistContainer.appendChild(item);
+    checklistContainer.appendChild(div);
   });
 
   if (!slaViolated) {
-    log("🟢 Operator acknowledged test scenario on time. Checklist displayed.", "TEST");
+    log("🟢 Alert acknowledged on time. Starting checklist.");
   } else {
-    log("🔴 Operator acknowledged test scenario LATE. SLA was violated.", "SLA");
+    log("🔴 Alert acknowledged late. SLA missed.");
   }
 }
 
 function checkChecklist() {
+  const textInputs = checklistContainer.querySelectorAll("input[type='text']");
   const checkboxes = checklistContainer.querySelectorAll("input[type='checkbox']");
-  const allChecked = Array.from(checkboxes).every(chk => chk.checked);
 
-  const inputs = checklistContainer.querySelectorAll("input[type='text']");
-  const allFilled = Array.from(inputs).every(input => input.value.trim() !== "");
+  let allTextFilled = true;
+  let allChecked = true;
 
-  closeButton.disabled = !(allChecked && allFilled);
+  checklistContainer.querySelectorAll(".checklist-item").forEach((item, index) => {
+    const input = item.querySelector("input[type='text']");
+    const checkbox = item.querySelector("input[type='checkbox']");
+    const isComplete =
+      (input && input.value.trim() !== "") || (checkbox && checkbox.checked);
+
+    item.classList.toggle("completed", isComplete);
+
+    if (input && input.value.trim() === "") allTextFilled = false;
+    if (checkbox && !checkbox.checked) allChecked = false;
+  });
+
+  closeButton.disabled = !(allTextFilled && allChecked);
 }
 
 function closeTestAlert() {
-  testModal.style.display = "none";
-  testModal.classList.remove("active");
+  const duration = ((Date.now() - checklistStartTime) / 1000).toFixed(1);
+  let entry = `✅ Alert closed. Checklist duration: ${duration}s.`;
 
-  if (checklistStartTime) {
-    const durationMs = Date.now() - checklistStartTime;
-    const durationSec = Math.floor(durationMs / 1000);
-    const durationMin = (durationSec / 60).toFixed(2);
-    log(`📋 Checklist completed in ${durationSec} seconds (${durationMin} minutes).`, "TEST");
-    checklistStartTime = null;
+  if (slaViolated && slaReason.value.trim()) {
+    entry += ` SLA Miss Reason: ${slaReason.value.trim()}`;
+  } else if (slaViolated) {
+    slaReason.classList.remove("hidden");
+    slaReason.focus();
+    return;
   }
 
-  if (slaViolated) {
-    const reason = prompt("SLA was missed. Please provide a reason:");
-    if (reason) {
-      log(`📝 SLA Violation Reason: ${reason}`, "SLA");
-    } else {
-      log("📝 SLA Violation Reason: No reason provided.", "SLA");
-    }
-  }
-
-  lastRealEventTime = Date.now();
+  log(entry);
+  testModal.classList.add("hidden");
   testAlertActive = false;
-  inactivityLimit = getRandomInactivityLimit();
-  log("✅ Test alert completed and closed.", "TEST");
+  lastRealEventTime = Date.now();
+  inactivityLimit = getRandomInactivityTime();
 }
-
-function checkInactivity() {
-  const now = Date.now();
-  if (!operator) return;
-  if (!testAlertActive && now - lastRealEventTime > inactivityLimit) {
-    triggerTestScenario();
-  }
-}
-
-setInterval(checkInactivity, 5000);
 
 function exportCSV() {
-  const header = ["Time", "Operator", "Message", "Type"];
-  const rows = logs.map(log =>
-    `"${log.time}","${log.operator}","${log.message.replace(/\"/g, '\"\"')}","${log.type}"`
-  );
-  const csvContent = "data:text/csv;charset=utf-8," + header.join(",") + "\n" + rows.join("\n");
-
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `operator_log_${new Date().toISOString()}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  let csv = "Time,Message\n";
+  logs.forEach(log => {
+    csv += `${log.time},"${log.message.replace(/"/g, '""')}"\n`;
+  });
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `operator-log-${new Date().toISOString()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
+
+function getRandomInactivityTime() {
+  return Math.floor(Math.random() * (inactivityMax - inactivityMin + 1)) + inactivityMin;
+}
+
+setInterval(() => {
+  const now = Date.now();
+  if (!testAlertActive && operator && now - lastRealEventTime > inactivityLimit) {
+    triggerTestScenario();
+  }
+}, 5000);

@@ -1,12 +1,57 @@
+/* General Page Styling */
 body {
   font-family: Arial, sans-serif;
   background-color: #f4f4f4;
-  margin: 20px;
+  margin: 0;
+  padding: 20px;
 }
-h1, h2 {
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+h1 {
+  text-align: center;
   color: #333;
 }
-#log {
+
+/* Input & Button Styles */
+input[type="text"], textarea {
+  padding: 8px;
+  width: 100%;
+  margin: 10px 0;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  padding: 10px 16px;
+  font-size: 16px;
+  margin-top: 10px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  background-color: #3498db;
+  color: white;
+}
+
+.btn {
+  padding: 10px 16px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background-color: #e74c3c;
+  color: white;
+}
+
+/* Log Box */
+.logBox {
   background: #fff;
   border: 1px solid #ccc;
   padding: 10px;
@@ -14,32 +59,113 @@ h1, h2 {
   overflow-y: auto;
   margin-top: 10px;
 }
-#testModal {
+
+/* Modal Overlay */
+.modal {
   position: fixed;
-  top: 0;
-  left: 0;
+  top: 0; left: 0;
   width: 100%;
   height: 100%;
   background: rgba(0,0,0,0.6);
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1000;
 }
-#testBox {
+
+/* Modal Content Box */
+.modal-box {
   background: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  width: 400px;
+  padding: 25px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+  animation: fadeIn 0.3s ease-in-out;
 }
-button {
-  margin-top: 10px;
-  padding: 8px 12px;
-  cursor: pointer;
+
+/* Flashing Red Alert */
+.modal-box.flashing {
+  animation: flashRed 1s infinite;
 }
+
 @keyframes flashRed {
   0%, 100% { background-color: #fff; }
-  50% { background-color: #ff4d4d; }
+  50% { background-color: #ffe5e5; }
 }
-#testModal.active #testBox {
-  animation: flashRed 1s infinite;
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Acknowledge Button Styling */
+#ackButton {
+  display: block;
+  margin: 20px auto;
+  padding: 12px 20px;
+  font-size: 16px;
+  background-color: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  width: fit-content;
+}
+
+/* Checklist Styling */
+#checklistSection {
+  margin-top: 20px;
+  text-align: left;
+}
+
+.checklist-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+/* Completed checklist step highlight */
+.checklist-item.completed {
+  background-color: #e0f9e0;
+  border-left: 5px solid #2ecc71;
+  padding-left: 10px;
+  transition: all 0.3s ease-in-out;
+}
+
+.checklist-item.completed::after {
+  content: " ✅";
+  color: green;
+  font-weight: bold;
+}
+
+/* Miscellaneous */
+.hidden {
+  display: none;
+}
+
+textarea {
+  margin-top: 10px;
+  height: 80px;
+  resize: vertical;
+}
+
+.alert-title {
+  font-size: 24px;
+  color: #c0392b;
+  font-weight: bold;
+}
+
+.scenario-title {
+  font-size: 18px;
+  margin: 10px 0;
+}
+
+.procedure-text {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 10px;
 }

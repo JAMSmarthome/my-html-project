@@ -2,35 +2,43 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Emergency Operator Test Platform</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emergency Operator Test Platform - V1</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <div class="container">
+    <h1>🚨 Emergency Operator Test Platform</h1>
 
-  <!-- Login -->
-  <div id="loginContainer">
-    <h2>Operator Login</h2>
-    <input type="text" id="operatorName" placeholder="Enter your name" />
-    <button onclick="loginOperator()">Login</button>
-  </div>
+    <div id="loginSection">
+      <label for="operatorName">Operator Name:</label>
+      <input type="text" id="operatorName" placeholder="Enter your name">
+      <button onclick="loginOperator()">Login</button>
+    </div>
 
-  <!-- Main Interface -->
-  <div id="mainUI" style="display:none;">
-    <h1>Welcome, <span id="currentOperator"></span></h1>
-    <button onclick="logRealEvent()">Log Real Emergency</button>
-    <button onclick="exportCSV()">Export Report (CSV)</button>
-    <div id="log"><strong>Log Output:</strong><br></div>
-  </div>
+    <div id="mainConsole" class="hidden">
+      <p><strong>Logged in as:</strong> <span id="loggedInOperator"></span></p>
+      <button onclick="logRealEvent()">Log Real Emergency</button>
+      <button onclick="exportCSV()">Export Report</button>
+      <div id="log" class="logBox"><strong>Log Output:</strong><br></div>
+    </div>
 
-  <!-- Test Alert Modal -->
-  <div id="testModal">
-    <div id="testBox">
-      <h3>🚨 Test Scenario Triggered</h3>
-      <p id="testScenario"></p>
-      <div id="slaTimer"></div>
-      <div id="checklist" style="margin-top: 15px;"></div>
-      <button id="ackBtn" onclick="acknowledgeTest()">Acknowledge and Start</button>
-      <button id="closeAlert" onclick="closeTestAlert()" disabled>Close Alert</button>
+    <div id="testModal" class="modal hidden">
+      <div class="modal-box">
+        <h2 class="alert-title">🚨 Test Alert</h2>
+        <p id="testScenarioTitle" class="scenario-title"></p>
+        <p id="testProcedure" class="procedure-text"></p>
+        <div id="slaTimerDisplay"></div>
+
+        <button id="ackButton" class="btn btn-primary" onclick="acknowledgeTest()">Acknowledge Alert</button>
+
+        <div id="checklistSection" class="hidden">
+          <h4>📋 Steps to Complete</h4>
+          <div id="checklist"></div>
+          <textarea id="slaReason" class="hidden" placeholder="Reason for SLA Miss (if applicable)"></textarea>
+          <button id="closeAlert" class="btn" onclick="closeTestAlert()" disabled>Close Alert</button>
+        </div>
+      </div>
     </div>
   </div>
 
