@@ -236,12 +236,12 @@ function closeTestAlert() {
 function exportCSV() {
   let csv = [
     "Timestamp",
+    "Operator Name",
     "Event Type",
     "SLA Status",
     "SLA Reason",
     "Scenario Title",
     "Checklist Summary",
-    "Operator Name"
   ].join(",") + "\n";
 
   logs.forEach(log => {
@@ -261,12 +261,12 @@ function exportCSV() {
 
     csv += [
       `"${timestamp}"`,
+      `"${operator}"`,
       `"${type}"`,
       `"${slaStatus}"`,
       `"${slaReason}"`,
       `"${title}"`,
       `"${checklistSummary}"`,
-      `"${operator}"`
     ].join(",") + "\n";
   });
 
