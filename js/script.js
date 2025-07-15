@@ -1,3 +1,5 @@
+// script.js
+
 let operator = "";
 let testAlertActive = false;
 let slaViolated = false;
@@ -23,20 +25,22 @@ const slaReason = document.getElementById("slaReason");
 const closeButton = document.getElementById("closeAlert");
 
 let lastRealEventTime = Date.now();
+let currentScenarioTitle = "";
 let logs = [];
+let slaAcknowledgeTime = null;
 
 const testScenarios = [
   {
     title: "Armed Response",
     procedure: "SOP-AR1",
     steps: [
-      "Acknowladge Alert",
+      "Acknowledge Alert",
       "Contact User",
       "Qualify Alert",
       "Assign Response Team",
-      "Make followup calls",
-      "Inform Managment",
-      "Record Incedent Details",
+      "Make follow-up calls",
+      "Inform Management",
+      "Record Incident Details",
       "Submit IR Report",
       "Complete Incident"
     ]
@@ -45,13 +49,13 @@ const testScenarios = [
     title: "Medical Response",
     procedure: "SOP-MR1",
     steps: [
-      "Acknowladge Alert",
+      "Acknowledge Alert",
       "Contact User",
       "Qualify Alert",
       "Assign to Medical Response",
-      "Make followup calls",
-      "Inform Managment",
-      "Record Incedent Details",
+      "Make follow-up calls",
+      "Inform Management",
+      "Record Incident Details",
       "Submit IR Report",
       "Complete Incident"
     ]
@@ -85,6 +89,7 @@ function log(message) {
 function triggerTestScenario() {
   if (testAlertActive || !operator) return;
   const scenario = testScenarios[Math.floor(Math.random() * testScenarios.length)];
+  currentScenarioTitle = scenario.title;
   const randomizedSteps = scenario.steps.map(step => ({ text: step, fill: false }));
 
   const blankCount = Math.floor(Math.random() * 3) + 1;
@@ -134,6 +139,7 @@ function acknowledgeTest() {
   clearTimeout(ackTimer);
   clearInterval(slaCountdown);
   checklistStartTime = Date.now();
+  slaAcknowledgeTime = ((checklistStartTime - testTriggeredTime) / 1000).toFixed(1);
 
   ackButton.style.display = "none";
   checklistSection.classList.remove("hidden");
@@ -147,12 +153,9 @@ function acknowledgeTest() {
     div.className = "checklist-item";
 
     if (step.fill) {
-      div.innerHTML = `
-        <input type="text" placeholder="Describe your action" id="stepInput${index}" oninput="checkChecklist()">`;
+      div.innerHTML = `<input type="text" placeholder="Describe your action" id="stepInput${index}" oninput="checkChecklist()">`;
     } else {
-      div.innerHTML = `
-        <input type="checkbox" id="chk${index}" onchange="checkChecklist()">
-        <label>${step.text}</label>`;
+      div.innerHTML = `<input type="checkbox" id="chk${index}" onchange="checkChecklist()"><label>${step.text}</label>`;
     }
 
     checklistContainer.appendChild(div);
@@ -189,23 +192,16 @@ function checkChecklist() {
 
 function closeTestAlert() {
   const duration = ((Date.now() - checklistStartTime) / 1000).toFixed(1);
-
   const steps = [];
+
   checklistContainer.querySelectorAll(".checklist-item").forEach((item, i) => {
     const input = item.querySelector("input[type='text']");
     const checkbox = item.querySelector("input[type='checkbox']");
     if (input) {
-      steps.push({
-        text: input.placeholder || "",
-        input: input.value.trim(),
-        manual: true
-      });
+      steps.push({ text: input.placeholder || "", input: input.value.trim(), manual: true });
     } else if (checkbox) {
       const label = item.querySelector("label");
-      steps.push({
-        text: label?.innerText || "",
-        manual: false
-      });
+      steps.push({ text: label?.innerText || "", manual: false });
     }
   });
 
@@ -219,11 +215,14 @@ function closeTestAlert() {
   }
 
   logs.push({
-    time: new Date().toLocaleTimeString(),
-    message: entry,
+    operator: operator,
+    time: new Date().toLocaleString(),
+    isTest: true,
+    scenarioTitle: currentScenarioTitle,
     slaViolated,
     slaReason: reason,
-    checklistSteps: steps
+    checklistSteps: steps,
+    acknowledgeTimeSeconds: slaAcknowledgeTime
   });
 
   log(entry);
@@ -234,47 +233,54 @@ function closeTestAlert() {
 }
 
 function exportCSV() {
-  let csv = [
-    "Timestamp",
+  const csvHeaders = [
     "Operator Name",
-    "Event Type",
-    "SLA Status",
-    "SLA Reason",
+    "Date & Time",
+    "Entry Type",
     "Scenario Title",
-    "Checklist Summary",
-  ].join(",") + "\n";
+    "SLA Status",
+    "SLA Reason (if missed)",
+    "Acknowledge Time (s)",
+    "Manually Captured Info"
+  ];
+
+  let csv = csvHeaders.join(",") + "\n";
 
   logs.forEach(log => {
-    const timestamp = log.time || "";
-    const type = log.type || (log.isTest ? "Test" : "Real");
+    const operator = log.operator || "";
+    const time = log.time || "";
+    const type = log.isTest ? "Automated Test Alert" : "Real";
+    const title = log.scenarioTitle || "";
     const slaStatus = log.slaViolated ? "Missed" : "Met";
     const slaReason = log.slaViolated && log.slaReason ? log.slaReason : "";
-    const title = log.scenarioTitle || "";
-    const checklistSummary = Array.isArray(log.checklistSteps)
-      ? log.checklistSteps.map(step =>
-          step.manual
-            ? `[MANUAL] ${step.input || step.text}`
-            : step.text
-        ).join(" | ")
-      : "";
-    const operator = log.operator || "";
+    const ackTime = log.acknowledgeTimeSeconds != null ? log.acknowledgeTimeSeconds : "";
 
-    csv += [
-      `"${timestamp}"`,
+    const manualEntries = Array.isArray(log.checklistSteps)
+      ? log.checklistSteps
+          .filter(step => step.manual && step.input)
+          .map(step => step.input.trim())
+          .join(" | ")
+      : "";
+
+    const row = [
       `"${operator}"`,
+      `"${time}"`,
       `"${type}"`,
+      `"${title}"`,
       `"${slaStatus}"`,
       `"${slaReason}"`,
-      `"${title}"`,
-      `"${checklistSummary}"`,
-    ].join(",") + "\n";
+      `"${ackTime}"`,
+      `"${manualEntries}"`
+    ];
+
+    csv += row.join(",") + "\n";
   });
 
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `emergency-log-${new Date().toISOString().slice(0,19).replace(/:/g, "-")}.csv`;
+  a.download = `emergency-report-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
