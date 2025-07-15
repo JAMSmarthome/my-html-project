@@ -21,6 +21,16 @@ body.modal-open {
   overflow: hidden;
 }
 
+/* Centered Login Screen */
+loginSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  text-align: center;
+}
+
 /* Input & Button Styles */
 input[type="text"], textarea {
   padding: 8px;

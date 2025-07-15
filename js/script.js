@@ -66,8 +66,8 @@ function loginOperator() {
   const name = document.getElementById("operatorName").value.trim();
   if (!name) return alert("Please enter your name");
   operator = name;
-  loginSection.classList.add("hidden");
-  mainConsole.classList.remove("hidden");
+  document.getElementById("loginSection").classList.add("hidden");
+  document.getElementById("mainConsole").classList.remove("hidden");
   document.getElementById("loggedInOperator").textContent = operator;
   log(`👤 Operator ${operator} signed in.`);
 }
