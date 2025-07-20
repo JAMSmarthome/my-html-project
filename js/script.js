@@ -59,6 +59,21 @@ const testScenarios = [
       "Submit IR Report",
       "Complete Incident"
     ]
+  },
+  {
+    title: "Fire Alert",
+    procedure: "SOP-FR1",
+    steps: [
+      "Acknowledge Alert",
+      "Contact User",
+      "Qualify Alert",
+      "Escalate to Fire Response",
+      "Make follow-up calls",
+      "Inform Management",
+      "Record Incident Details",
+      "Submit IR Report",
+      "Complete Incident"
+    ]
   }
 ];
 
