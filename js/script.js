@@ -87,6 +87,16 @@ function loginOperator() {
   log(`👤 Operator ${operator} signed in.`);
 }
 
+function logoutOperator() {
+  // Hide the main console and show the login screen again
+  document.getElementById('mainConsole').classList.add('hidden');
+  document.getElementById('loginSection').classList.remove('hidden');
+
+  // Clear any stored operator name
+  document.getElementById('operatorName').value = '';
+  document.getElementById('loggedInOperator').textContent = '';
+}
+
 function logRealEvent() {
   lastRealEventTime = Date.now();
   log("✅ Real emergency logged.");
