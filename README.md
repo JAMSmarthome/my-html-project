@@ -1,77 +1,106 @@
-# 🚨 Emergency Operator Test Platform – V1
+# 🆘 Emergency Test System
 
-This web-based platform is designed to **randomly test emergency operators** during their shifts when no real emergencies are detected for a certain period. The system simulates emergency scenarios to ensure operators maintain readiness and strictly follow standard operating procedures (SOPs).
-
----
-
-## ✅ Key Features
-
-- 🔐 **Operator Login** – Each operator must log in before starting their shift.
-- ⏱ **Inactivity Timer** – If no real emergencies are logged after a random interval, a **test alert** is triggered.
-- 🚨 **Random Test Scenarios** – A wide variety of preloaded emergencies like gas leaks, network outages, chemical spills, and more.
-- 📋 **Interactive Checklist** – Operators must complete a procedural checklist to resolve the alert.
-  - Some steps are **predefined**.
-  - Some steps are **blank fields** the operator must **fill in** with their actions.
-- ⏳ **SLA Acknowledgement Timer** – Operators must acknowledge test alerts within **10 seconds**. If late, the SLA is marked as **missed**.
-- 📝 **Reason Capture** – If the SLA is missed, the operator is required to provide a **reason**.
-- 📦 **Local Log Storage** – All operator activity is stored in **local browser storage** (or can be extended to use a database).
-- 📄 **CSV Export** – Operators or admins can download a full log of shift activity (real events, test alerts, SLA results).
+A Node.js backend system for sending simulated emergency test alerts and forwarding them to a third-party system (such as a logging, training, or monitoring tool).
 
 ---
 
-## 🧰 Technologies Used
+## ✅ Features
 
-- HTML5
-- CSS3
-- JavaScript (Vanilla)
-- LocalStorage for data persistence
+- RESTful API for sending test alerts
+- Forwards alerts to a mock or real third-party system
+- Logs all alerts and third-party responses
+- Basic fault handling and error logging
+- Includes a built-in mock third-party receiver
 
 ---
 
-## 📁 Project Structure
-project-root/
-│
-├── index.html              # Main user interface
-├── css/
-│   └── style.css           # All styling and animation rules
+## 🚀 Getting Started
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/JAMSmarthome/my-html-project.git
+cd emergency-test-system
+
+2. Install Dependencies
+npm install
+3. Run the Servers
+
+Open two terminals:
+Terminal 1: Start API Server - node js/server.js
+
+Terminal 2: Start Mock Third-Party Receiver - node js/mock-receiver.js
+
+🧪 API Documentation
+
+POST /api/test-alert
+
+Send a test alert into the system.
+	•	Endpoint: http://localhost:3000/api/test-alert
+	•	Method: POST
+	•	Headers: Content-Type: application/json
+	•	Body Example:
+{
+  "title": "Test Scenario",
+  "procedure": "SOP-TEST-01",
+  "details": "Simulated test alert from system"
+}
+
+Success Response (200 OK):
+{
+  "status": "success",
+  "message": "Alert forwarded to third-party successfully",
+  "thirdPartyResponse": {
+    "status": "received",
+    "receivedAt": "2025-07-25T21:10:03.673Z"
+  }
+}
+
+Error Response (500):
+{
+  "status": "error",
+  "message": "Failed to forward alert to third-party",
+  "error": "connect ECONNREFUSED ::1:4000"
+}
+
+GET /api/alerts
+View the full log of test alerts.
+	•	Endpoint: http://localhost:3000/api/alerts
+	•	Method: GET
+	•	Returns: Array of alert logs
+
+Response Example:
+[
+  {
+    "title": "Test Scenario",
+    "procedure": "SOP-TEST-01",
+    "details": "Simulated test alert",
+    "receivedAt": "2025-07-25T21:10:03.654Z",
+    "thirdPartyResponse": {
+      "status": "received",
+      "receivedAt": "2025-07-25T21:10:03.673Z"
+    }
+  }
+]
+
+🗂️ Project Structure
+emergency-test-system/
 ├── js/
-│   └── script.js           # Full interactive behavior and logic
-├── README.md               # This file
----
+│   ├── server.js           # Main API backend
+│   └── mock-receiver.js    # Mock third-party endpoint
+├── package.json
+├── README.md
 
-## 🚀 How to Use
+🔧 Future Improvements
+	•	Retry logic for failed third-party calls
+	•	SLA/timeout monitoring and alerting
+	•	Store alerts in a database (MongoDB, SQLite, etc.)
+	•	Operator authentication
+	•	Frontend dashboard (React or simple HTML)
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/emergency-operator-test-platform.git
-   2.	Open index.html in a browser
-	•	You can use VS Code with Live Server, or open it directly in Chrome or Firefox.
-	3.	Log in as an operator
-	•	Enter your name to begin the shift session.
-	4.	Test behavior
-	•	Click “Log Real Emergency” to simulate actual events.
-	•	Let the timer lapse and a random test alert will appear.
-	•	Follow the checklist steps, fill in the blanks, and close the alert.
-	5.	Export Logs
-	•	Click the “Export CSV” button to download a full report.
+⸻
 
-   🚨 Test Scenario: Chemical Spill in Lab 2
-🧪 SOP: Initiate Decontamination Procedure SOP-CHEM-12
+📫 Contact
 
-☑️ Step 1: [input required]
-☑️ Step 2: Use spill kit
-☑️ Step 3: Notify hazardous material team
-☑️ Step 4: [input required]
-🔐 Future Enhancements
-	•	🔄 Integration with a backend (e.g., Firebase, Supabase, MongoDB)
-	•	📊 Dashboard for admin/supervisors
-	•	⏳ Configurable SLA durations
-	•	🔁 Shift scheduling + reminders
-	•	📱 Mobile responsive interface
- 🧑‍💻 Author
+Maintained by @JAMSmarthome
 
-John van Zyl
-This project is intended to improve emergency readiness and compliance in simulated operational environments.
-📄 License
-
-This project is open-source and available under the MIT License.
