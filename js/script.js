@@ -116,12 +116,32 @@ function triggerTestScenario() {
   const scenario = testScenarios[Math.floor(Math.random() * testScenarios.length)];
   currentScenarioTitle = scenario.title;
   const randomizedSteps = scenario.steps.map(step => ({ text: step, fill: false }));
-
   const blankCount = Math.floor(Math.random() * 3) + 1;
   const indices = [...randomizedSteps.keys()].sort(() => 0.5 - Math.random()).slice(0, blankCount);
   indices.forEach(i => {
     randomizedSteps[i].fill = true;
     randomizedSteps[i].text = "______";
+
+    // Send to third-party
+fetch("http://localhost:3000/api/send-alert", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    operator,
+    scenarioTitle: scenario.title,
+    triggeredAt: new Date().toISOString()
+  })
+})
+.then(response => response.json())
+.then(data => {
+  log(`📡 Sent to third-party: ${data.status}`, "INFO");
+  if (data.thirdPartyResponse) {
+    log(`🔁 Third-party responded: ${JSON.stringify(data.thirdPartyResponse)}`, "INFO");
+  }
+})
+.catch(err => {
+  log("⚠️ Failed to send alert to third-party: " + err.message, "ERROR");
+});
   });
 
   checklistContainer.innerHTML = "";
