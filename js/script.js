@@ -24,10 +24,22 @@ const checklistContainer = document.getElementById("checklist");
 const slaReason = document.getElementById("slaReason");
 const closeButton = document.getElementById("closeAlert");
 
+
 let lastRealEventTime = Date.now();
 let currentScenarioTitle = "";
 let logs = [];
 let slaAcknowledgeTime = null;
+
+// Listen for SSE updates
+const eventSource = new EventSource("/api/sse");
+
+eventSource.onmessage = function (event) {
+  const data = JSON.parse(event.data);
+  if (data.type === "acknowledgment") {
+    const logBox = document.getElementById("log");
+    logBox.innerHTML += `<br><span style="color: green;">[ACK] "${data.title}" acknowledged via ${data.source} at ${new Date(data.time).toLocaleTimeString()}</span>`;
+  }
+};
 
 const testScenarios = [
   {
@@ -333,6 +345,35 @@ function exportCSV() {
 
 function getRandomInactivityTime() {
   return Math.floor(Math.random() * (inactivityMax - inactivityMin + 1)) + inactivityMin;
+}
+
+async function triggerTestAlertFromUI() {
+  const logBox = document.getElementById("log");
+  logBox.innerHTML += `<br><span style="color: orange;">[INFO] Triggering manual test alert...</span>`;
+
+  try {
+    const response = await fetch("http://localhost:3000/api/test-alert", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        title: "Manual UI Test Alert",
+        procedure: "SOP-MANUAL-001",
+        details: "Test alert manually triggered from browser"
+      })
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      logBox.innerHTML += `<br><span style="color: green;">[SUCCESS] Test alert sent successfully: ${result.message}</span>`;
+    } else {
+      logBox.innerHTML += `<br><span style="color: red;">[ERROR] Failed to send test alert: ${result.message}</span>`;
+    }
+  } catch (err) {
+    logBox.innerHTML += `<br><span style="color: red;">[ERROR] ${err.message}</span>`;
+  }
 }
 
 setInterval(() => {
