@@ -197,3 +197,73 @@ textarea {
   color: #555;
   margin-bottom: 10px;
 }
+
+/* Active Alerts Container */
+.alert-list {
+  margin-top: 15px;
+  padding: 10px;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.alert-list h3 {
+  margin: 0 0 10px;
+  font-size: 18px;
+  color: #333;
+}
+
+#alertItems {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#alertItems li {
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Status Colors */
+.alert-pending {
+  background-color: #fff3cd; /* Light Yellow */
+  color: #856404;
+}
+
+.alert-acknowledged {
+  background-color: #d4edda; /* Light Green */
+  color: #155724;
+}
+
+.alert-manual {
+  border-left: 4px solid #007bff; /* Blue for manual */
+}
+
+.alert-api {
+  border-left: 4px solid #17a2b8; /* Teal for API Push */
+}
+
+/* Status badge */
+.status-badge {
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.status-pending {
+  background: #ffeeba;
+  color: #856404;
+}
+
+.status-ack {
+  background: #c3e6cb;
+  color: #155724;
+}

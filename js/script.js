@@ -24,22 +24,10 @@ const checklistContainer = document.getElementById("checklist");
 const slaReason = document.getElementById("slaReason");
 const closeButton = document.getElementById("closeAlert");
 
-
 let lastRealEventTime = Date.now();
 let currentScenarioTitle = "";
 let logs = [];
 let slaAcknowledgeTime = null;
-
-// Listen for SSE updates
-const eventSource = new EventSource("/api/sse");
-
-eventSource.onmessage = function (event) {
-  const data = JSON.parse(event.data);
-  if (data.type === "acknowledgment") {
-    const logBox = document.getElementById("log");
-    logBox.innerHTML += `<br><span style="color: green;">[ACK] "${data.title}" acknowledged via ${data.source} at ${new Date(data.time).toLocaleTimeString()}</span>`;
-  }
-};
 
 const testScenarios = [
   {
@@ -93,18 +81,15 @@ function loginOperator() {
   const name = document.getElementById("operatorName").value.trim();
   if (!name) return alert("Please enter your name");
   operator = name;
-  document.getElementById("loginSection").classList.add("hidden");
-  document.getElementById("mainConsole").classList.remove("hidden");
+  loginSection.classList.add("hidden");
+  mainConsole.classList.remove("hidden");
   document.getElementById("loggedInOperator").textContent = operator;
   log(`👤 Operator ${operator} signed in.`);
 }
 
 function logoutOperator() {
-  // Hide the main console and show the login screen again
-  document.getElementById('mainConsole').classList.add('hidden');
-  document.getElementById('loginSection').classList.remove('hidden');
-
-  // Clear any stored operator name
+  mainConsole.classList.add("hidden");
+  loginSection.classList.remove("hidden");
   document.getElementById('operatorName').value = '';
   document.getElementById('loggedInOperator').textContent = '';
 }
@@ -125,35 +110,16 @@ function log(message) {
 
 function triggerTestScenario() {
   if (testAlertActive || !operator) return;
+
   const scenario = testScenarios[Math.floor(Math.random() * testScenarios.length)];
   currentScenarioTitle = scenario.title;
+
   const randomizedSteps = scenario.steps.map(step => ({ text: step, fill: false }));
   const blankCount = Math.floor(Math.random() * 3) + 1;
   const indices = [...randomizedSteps.keys()].sort(() => 0.5 - Math.random()).slice(0, blankCount);
   indices.forEach(i => {
     randomizedSteps[i].fill = true;
     randomizedSteps[i].text = "______";
-
-    // Send to third-party
-fetch("http://localhost:3000/api/send-alert", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    operator,
-    scenarioTitle: scenario.title,
-    triggeredAt: new Date().toISOString()
-  })
-})
-.then(response => response.json())
-.then(data => {
-  log(`📡 Sent to third-party: ${data.status}`, "INFO");
-  if (data.thirdPartyResponse) {
-    log(`🔁 Third-party responded: ${JSON.stringify(data.thirdPartyResponse)}`, "INFO");
-  }
-})
-.catch(err => {
-  log("⚠️ Failed to send alert to third-party: " + err.message, "ERROR");
-});
   });
 
   checklistContainer.innerHTML = "";
@@ -232,7 +198,7 @@ function checkChecklist() {
   let allTextFilled = true;
   let allChecked = true;
 
-  checklistContainer.querySelectorAll(".checklist-item").forEach((item, index) => {
+  checklistContainer.querySelectorAll(".checklist-item").forEach((item) => {
     const input = item.querySelector("input[type='text']");
     const checkbox = item.querySelector("input[type='checkbox']");
     const isComplete =
@@ -251,7 +217,7 @@ function closeTestAlert() {
   const duration = ((Date.now() - checklistStartTime) / 1000).toFixed(1);
   const steps = [];
 
-  checklistContainer.querySelectorAll(".checklist-item").forEach((item, i) => {
+  checklistContainer.querySelectorAll(".checklist-item").forEach((item) => {
     const input = item.querySelector("input[type='text']");
     const checkbox = item.querySelector("input[type='checkbox']");
     if (input) {
@@ -348,15 +314,12 @@ function getRandomInactivityTime() {
 }
 
 async function triggerTestAlertFromUI() {
-  const logBox = document.getElementById("log");
-  logBox.innerHTML += `<br><span style="color: orange;">[INFO] Triggering manual test alert...</span>`;
+  log(`[INFO] Triggering manual test alert...`);
 
   try {
     const response = await fetch("http://localhost:3000/api/test-alert", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: "Manual UI Test Alert",
         procedure: "SOP-MANUAL-001",
@@ -367,12 +330,12 @@ async function triggerTestAlertFromUI() {
     const result = await response.json();
 
     if (response.ok) {
-      logBox.innerHTML += `<br><span style="color: green;">[SUCCESS] Test alert sent successfully: ${result.message}</span>`;
+      log(`[SUCCESS] Test alert sent successfully: ${result.message}`);
     } else {
-      logBox.innerHTML += `<br><span style="color: red;">[ERROR] Failed to send test alert: ${result.message}</span>`;
+      log(`[ERROR] Failed to send test alert: ${result.message}`);
     }
   } catch (err) {
-    logBox.innerHTML += `<br><span style="color: red;">[ERROR] ${err.message}</span>`;
+    log(`[ERROR] ${err.message}`);
   }
 }
 
@@ -382,3 +345,45 @@ setInterval(() => {
     triggerTestScenario();
   }
 }, 5000);
+
+const eventSource = new EventSource("http://localhost:3000/api/sse");
+const alertItems = document.getElementById("alertItems");
+const activeAlerts = {};
+
+eventSource.onmessage = function (event) {
+  const data = JSON.parse(event.data);
+
+  if (data.type === "new-alert") {
+    const alert = data.alert;
+    activeAlerts[alert.id] = alert;
+
+    const li = document.createElement("li");
+    li.id = `alert-${alert.id}`;
+    li.classList.add("alert-pending");
+    li.innerHTML = `
+      <strong>${alert.title}</strong>
+      <span class="status-badge status-pending" id="status-${alert.id}">Pending</span>
+      <br><small>ID: ${alert.id}</small>
+    `;
+    alertItems.appendChild(li);
+
+    log(`📡 New alert received (ID: ${alert.id}) - ${alert.title}`);
+  }
+
+  if (data.type === "acknowledgment") {
+    const { alertId, acknowledgedBy, time } = data;
+    const li = document.getElementById(`alert-${alertId}`);
+    const statusEl = document.getElementById(`status-${alertId}`);
+    if (statusEl) {
+      statusEl.textContent = `ACK by ${acknowledgedBy}`;
+      statusEl.classList.remove("status-pending");
+      statusEl.classList.add("status-ack");
+    }
+    if (li) {
+      li.classList.remove("alert-pending");
+      li.classList.add("alert-acknowledged");
+    }
+
+    log(`✅ Alert acknowledged (ID: ${alertId}) by ${acknowledgedBy} at ${new Date(time).toLocaleTimeString()}`);
+  }
+};
