@@ -23,12 +23,18 @@
     }
 
     #alertBox {
-      width: 400px;
+      width: 450px;
       background: white;
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       text-align: center;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .alert-title {
@@ -40,10 +46,10 @@
     .alert-details {
       font-size: 14px;
       color: #555;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
 
-    #acknowledgeBtn {
+    #acknowledgeBtn, #completeBtn {
       background: #28a745;
       color: white;
       border: none;
@@ -52,15 +58,56 @@
       border-radius: 6px;
       cursor: pointer;
       transition: background 0.3s ease;
+      margin-top: 10px;
     }
 
-    #acknowledgeBtn:hover {
+    #acknowledgeBtn:hover, #completeBtn:hover {
       background: #218838;
     }
 
     #noAlert {
       color: #666;
       font-size: 16px;
+    }
+
+    #checklistSection {
+      margin-top: 20px;
+      text-align: left;
+      display: none;
+    }
+
+    .checklist-item {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+    }
+
+    .checklist-item input[type="checkbox"] {
+      margin-right: 10px;
+    }
+
+    .checklist-item.completed label {
+      text-decoration: line-through;
+      color: green;
+    }
+
+    #completeBtn {
+      background: #007bff;
+    }
+
+    #slaTimer {
+      font-weight: bold;
+      margin-top: 10px;
+      color: #dc3545;
+    }
+
+    .flashing {
+      animation: flash 1s ease-in-out 5;
+    }
+
+    @keyframes flash {
+      0%, 100% { background-color: white; }
+      50% { background-color: #ffdddd; }
     }
   </style>
 </head>
@@ -71,51 +118,15 @@
     <div id="activeAlert" style="display: none;">
       <p class="alert-title" id="alertTitle"></p>
       <p class="alert-details" id="alertDetails"></p>
-      <button id="acknowledgeBtn" onclick="acknowledgeAlert()">✅ Acknowledge</button>
+      <button id="acknowledgeBtn">✅ Acknowledge</button>
+      <div id="checklistSection">
+        <h3>Checklist</h3>
+        <div id="checklistContainer"></div>
+        <button id="completeBtn" disabled>✅ Complete Alert</button>
+      </div>
     </div>
   </div>
 
-  <script>
-    let currentAlert = null;
-
-    // Connect to SSE for real-time updates
-    const eventSource = new EventSource("/api/sse");
-
-    eventSource.onmessage = function(event) {
-      const data = JSON.parse(event.data);
-
-      if (data.type === "new-alert") {
-        currentAlert = data.alert;
-        document.getElementById("noAlert").style.display = "none";
-        document.getElementById("activeAlert").style.display = "block";
-        document.getElementById("alertTitle").textContent = currentAlert.title;
-        document.getElementById("alertDetails").textContent = `ID: ${currentAlert.id} | ${currentAlert.details || ''}`;
-      }
-    };
-
-    async function acknowledgeAlert() {
-      if (!currentAlert) return;
-
-      try {
-        await fetch("/api/acknowledge-from-client", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            client: "Test Dashboard",
-            originalTitle: currentAlert.title,
-            receivedAt: new Date().toISOString()
-          })
-        });
-
-        alert(`Alert "${currentAlert.title}" acknowledged!`);
-        document.getElementById("activeAlert").style.display = "none";
-        document.getElementById("noAlert").style.display = "block";
-        document.getElementById("noAlert").textContent = "Waiting for new alerts...";
-        currentAlert = null;
-      } catch (error) {
-        console.error("Error acknowledging alert:", error);
-      }
-    }
-  </script>
+  <script src="js/test-dashboard.js"></script>
 </body>
 </html>

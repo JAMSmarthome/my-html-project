@@ -42,7 +42,17 @@ app.post("/api/test-alert", async (req, res) => {
   alertData.id = uuidv4(); // ✅ Unique ID for each alert
   alertData.receivedAt = new Date().toISOString();
   alertData.acknowledged = false;
+  alertData.completed = false;
   alertData.via = "Manual Trigger";
+
+  // Include a checklist if not provided
+  alertData.steps = alertData.steps || [
+    "Verify incident details",
+    "Notify supervisor",
+    "Log event in system",
+    "Check safety procedures",
+    "Close the alert after validation"
+  ];
 
   testAlerts.push(alertData);
   console.log("📥 Received test alert:", alertData);
@@ -135,6 +145,32 @@ app.post("/api/acknowledge-from-client", (req, res) => {
   } else {
     res.status(404).json({ message: "Alert not found" });
   }
+});
+
+// ✅ NEW: Mark alert as completed
+app.post("/api/complete-alert", (req, res) => {
+  const { alertId, completedBy, steps } = req.body;
+
+  const alert = testAlerts.find(a => a.id === alertId);
+  if (!alert) {
+    return res.status(404).json({ status: "error", message: "Alert not found" });
+  }
+
+  alert.completed = true;
+  alert.completedBy = completedBy;
+  alert.completedAt = new Date().toISOString();
+  alert.steps = steps;
+
+  console.log(`✅ Alert ${alertId} completed by ${completedBy}`);
+
+  // Broadcast completion to all UIs
+  broadcastToClients({
+    type: "alert-completed",
+    alertId,
+    completedBy
+  });
+
+  res.json({ status: "success", message: "Alert completed successfully" });
 });
 
 app.listen(PORT, () => {
