@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Alerts Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    #alertBox {
+      width: 400px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+
+    .alert-title {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .alert-details {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 20px;
+    }
+
+    #acknowledgeBtn {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    #acknowledgeBtn:hover {
+      background: #218838;
+    }
+
+    #noAlert {
+      color: #666;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test Alerts Dashboard</h1>
+  <div id="alertBox">
+    <p id="noAlert">Waiting for new alerts...</p>
+    <div id="activeAlert" style="display: none;">
+      <p class="alert-title" id="alertTitle"></p>
+      <p class="alert-details" id="alertDetails"></p>
+      <button id="acknowledgeBtn" onclick="acknowledgeAlert()">✅ Acknowledge</button>
+    </div>
+  </div>
+
+  <script>
+    let currentAlert = null;
+
+    // Connect to SSE for real-time updates
+    const eventSource = new EventSource("/api/sse");
+
+    eventSource.onmessage = function(event) {
+      const data = JSON.parse(event.data);
+
+      if (data.type === "new-alert") {
+        currentAlert = data.alert;
+        document.getElementById("noAlert").style.display = "none";
+        document.getElementById("activeAlert").style.display = "block";
+        document.getElementById("alertTitle").textContent = currentAlert.title;
+        document.getElementById("alertDetails").textContent = `ID: ${currentAlert.id} | ${currentAlert.details || ''}`;
+      }
+    };
+
+    async function acknowledgeAlert() {
+      if (!currentAlert) return;
+
+      try {
+        await fetch("/api/acknowledge-from-client", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            client: "Test Dashboard",
+            originalTitle: currentAlert.title,
+            receivedAt: new Date().toISOString()
+          })
+        });
+
+        alert(`Alert "${currentAlert.title}" acknowledged!`);
+        document.getElementById("activeAlert").style.display = "none";
+        document.getElementById("noAlert").style.display = "block";
+        document.getElementById("noAlert").textContent = "Waiting for new alerts...";
+        currentAlert = null;
+      } catch (error) {
+        console.error("Error acknowledging alert:", error);
+      }
+    }
+  </script>
+</body>
+</html>
