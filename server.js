@@ -14,7 +14,31 @@ app.use(express.static("public"));
 let testAlerts = [];
 let sseClients = [];
 
-// SSE setup
+// 🔐 Mock login users
+const mockUsers = [
+  { username: "operator1", password: "1234" },
+  { username: "operator2", password: "5678" }
+];
+
+// 🔐 Login API
+app.post("/api/login", (req, res) => {
+  const { username, password } = req.body;
+
+  const user = mockUsers.find(u => u.username === username && u.password === password);
+  if (!user) {
+    return res.status(401).json({ status: "error", message: "Invalid credentials" });
+  }
+
+  console.log(`🔓 Operator logged in: ${username}`);
+  res.json({ status: "success", operator: username });
+});
+
+// 🔐 Logout API (stateless for now)
+app.post("/api/logout", (req, res) => {
+  res.json({ status: "success", message: "Logged out" });
+});
+
+// ✅ SSE setup
 app.get("/api/sse", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -33,19 +57,17 @@ function broadcastToClients(data) {
   sseClients.forEach(client => client.write(payload));
 }
 
-// Config
 const THIRD_PARTY_URL = "http://localhost:4000/receive-alert";
 
-// Endpoint to receive test alert requests (Manual or API Trigger)
+// ✅ Trigger test alert
 app.post("/api/test-alert", async (req, res) => {
   const alertData = req.body;
-  alertData.id = uuidv4(); // ✅ Unique ID for each alert
+  alertData.id = uuidv4();
   alertData.receivedAt = new Date().toISOString();
   alertData.acknowledged = false;
   alertData.completed = false;
   alertData.via = "Manual Trigger";
 
-  // Include a checklist if not provided
   alertData.steps = alertData.steps || [
     "Verify incident details",
     "Notify supervisor",
@@ -57,42 +79,44 @@ app.post("/api/test-alert", async (req, res) => {
   testAlerts.push(alertData);
   console.log("📥 Received test alert:", alertData);
 
-  // ✅ Push new alert to all connected clients in real-time
-broadcastToClients({
-  type: "new-alert",
-  alert: alertData
-});
+  broadcastToClients({
+    type: "new-alert",
+    alert: alertData
+  });
 
-/*
-// You can uncomment this again later when the mock server is live
-try {
-  const response = await axios.post(THIRD_PARTY_URL, alertData, { timeout: 5000 });
-  console.log("➡️ Third-party response:", response.data);
-  testAlerts[testAlerts.length - 1].thirdPartyResponse = response.data;
-
+  // Skip third-party push for now unless mock is running
   res.json({
     status: "success",
-    message: "Alert forwarded to third-party successfully",
-    thirdPartyResponse: response.data,
+    message: "Alert triggered and broadcasted successfully."
   });
-} catch (error) {
-  console.error("❌ Failed to push alert to third-party:", error.message);
-  testAlerts[testAlerts.length - 1].thirdPartyError = error.message;
 
-  res.status(500).json({
-    status: "error",
-    message: "Failed to forward alert to third-party",
-    error: error.message,
-  });
-}
-*/
+  /*
+  try {
+    const response = await axios.post(THIRD_PARTY_URL, alertData, { timeout: 5000 });
+    console.log("➡️ Third-party response:", response.data);
 
-res.json({
-  status: "success",
-  message: "Alert triggered and broadcasted successfully."
+    testAlerts[testAlerts.length - 1].thirdPartyResponse = response.data;
+
+    res.json({
+      status: "success",
+      message: "Alert forwarded to third-party successfully",
+      thirdPartyResponse: response.data,
+    });
+  } catch (error) {
+    console.error("❌ Failed to push alert to third-party:", error.message);
+
+    testAlerts[testAlerts.length - 1].thirdPartyError = error.message;
+
+    res.status(500).json({
+      status: "error",
+      message: "Failed to forward alert to third-party",
+      error: error.message,
+    });
+  }
+  */
 });
 
-// Manual acknowledgment by operator
+// ✅ Acknowledge
 app.post("/api/alerts/:id/acknowledge", (req, res) => {
   const id = req.params.id;
   const operator = req.body.operator;
@@ -109,7 +133,6 @@ app.post("/api/alerts/:id/acknowledge", (req, res) => {
 
   console.log(`✅ Alert ${id} acknowledged by ${operator}`);
 
-  // ✅ Push acknowledgment to UI in real-time
   broadcastToClients({
     type: "acknowledgment",
     alertId: id,
@@ -120,12 +143,12 @@ app.post("/api/alerts/:id/acknowledge", (req, res) => {
   res.json({ status: "success", message: "Alert acknowledged" });
 });
 
-// Get all alert logs
+// ✅ All alert logs
 app.get("/api/alerts", (req, res) => {
   res.json(testAlerts);
 });
 
-// Handle callback/acknowledgment from 3rd party system
+// ✅ API acknowledgment
 app.post("/api/acknowledge-from-client", (req, res) => {
   const { client, originalTitle, receivedAt } = req.body;
 
@@ -138,7 +161,6 @@ app.post("/api/acknowledge-from-client", (req, res) => {
 
     console.log(`🔁 Alert acknowledged via API Push from ${client}`);
 
-    // ✅ Push acknowledgment update to UI
     broadcastToClients({
       type: "acknowledgment",
       alertId: alert.id,
@@ -152,7 +174,7 @@ app.post("/api/acknowledge-from-client", (req, res) => {
   }
 });
 
-// ✅ NEW: Mark alert as completed
+// ✅ Complete alert
 app.post("/api/complete-alert", (req, res) => {
   const { alertId, completedBy, steps } = req.body;
 
@@ -168,7 +190,6 @@ app.post("/api/complete-alert", (req, res) => {
 
   console.log(`✅ Alert ${alertId} completed by ${completedBy}`);
 
-  // Broadcast completion to all UIs
   broadcastToClients({
     type: "alert-completed",
     alertId,
@@ -178,6 +199,7 @@ app.post("/api/complete-alert", (req, res) => {
   res.json({ status: "success", message: "Alert completed successfully" });
 });
 
+// ✅ Start server
 app.listen(PORT, () => {
   console.log(`🚀 Test Alert API server running at http://localhost:${PORT}`);
 });

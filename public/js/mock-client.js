@@ -1,61 +1,84 @@
 // public/js/mock-client.js
 
+let currentAlert = null;
+let checklistSteps = [];
+const logContainer = document.getElementById("log");
 const clientIdInput = document.getElementById("clientId");
-const log = document.getElementById("log");
 
-function logMessage(msg) {
+function log(message) {
   const p = document.createElement("p");
-  p.textContent = msg;
-  log.appendChild(p);
-  log.scrollTop = log.scrollHeight;
+  p.textContent = message;
+  logContainer.appendChild(p);
+  logContainer.scrollTop = logContainer.scrollHeight;
 }
 
-// Connect to SSE
+// Listen for real-time alerts via SSE
 const eventSource = new EventSource("/api/sse");
 
-eventSource.onmessage = function (event) {
+eventSource.onmessage = (event) => {
   const data = JSON.parse(event.data);
-
   if (data.type === "new-alert") {
-    const alert = data.alert;
-    logMessage(`🚨 New Alert: ${alert.title} (ID: ${alert.id})`);
-
-    // Automatically acknowledge after delay
-    setTimeout(() => {
-      fetch("/api/acknowledge-from-client", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          client: clientIdInput.value || "MockClient",
-          originalTitle: alert.title,
-          receivedAt: new Date().toISOString(),
-        }),
-      })
-      .then(() => logMessage(`✅ Acknowledged: ${alert.title}`))
-      .catch(err => logMessage("❌ Acknowledge failed: " + err));
-    }, 1000);
-
-    // Automatically complete after another delay
-    setTimeout(() => {
-      fetch("/api/complete-alert", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          alertId: alert.id,
-          completedBy: clientIdInput.value || "MockClient",
-          steps: alert.steps.map(s => ({ text: s, completed: true })),
-        }),
-      })
-      .then(() => logMessage(`✅ Completed: ${alert.title}`))
-      .catch(err => logMessage("❌ Completion failed: " + err));
-    }, 3000);
-  }
-
-  if (data.type === "acknowledgment") {
-    logMessage(`📬 Acknowledgment received for ${data.alertId} by ${data.acknowledgedBy}`);
-  }
-
-  if (data.type === "alert-completed") {
-    logMessage(`🏁 Alert ${data.alertId} completed by ${data.completedBy}`);
+    handleAlert(data.alert);
+  } else if (data.type === "acknowledgment") {
+    log(`✅ Alert ${data.alertId} acknowledged by ${data.acknowledgedBy}`);
+  } else if (data.type === "alert-completed") {
+    log(`✅ Alert ${data.alertId} completed by ${data.completedBy}`);
   }
 };
+
+function handleAlert(alert) {
+  currentAlert = alert;
+  checklistSteps = alert.steps.map(step => ({ text: step, completed: false }));
+
+  log(`🚨 New Alert: ${alert.title} | Procedure: ${alert.procedure}`);
+
+  checklistSteps.forEach((step, i) => {
+    log(`⬜ Step ${i + 1}: ${step.text || step}`);
+  });
+
+  acknowledgeAlert();
+}
+
+async function acknowledgeAlert() {
+  if (!currentAlert) return;
+  const client = clientIdInput.value || "MockClient";
+  try {
+    await fetch("/api/acknowledge-from-client", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client,
+        originalTitle: currentAlert.title,
+        receivedAt: new Date().toISOString()
+      })
+    });
+    log(`📬 Acknowledged alert "${currentAlert.title}" as ${client}`);
+    completeAlert(); // Automatically proceed to simulate completion
+  } catch (err) {
+    log(`❌ Failed to acknowledge alert: ${err.message}`);
+  }
+}
+
+async function completeAlert() {
+  if (!currentAlert) return;
+  const client = clientIdInput.value || "MockClient";
+
+  // Simulate completing all steps
+  checklistSteps.forEach(s => (s.completed = true));
+
+  try {
+    await fetch("/api/complete-alert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        alertId: currentAlert.id,
+        completedBy: client,
+        steps: checklistSteps
+      })
+    });
+    log(`✅ Completed alert "${currentAlert.title}" as ${client}`);
+    currentAlert = null;
+  } catch (err) {
+    log(`❌ Failed to complete alert: ${err.message}`);
+  }
+}

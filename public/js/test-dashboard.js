@@ -1,121 +1,133 @@
-// public/js/test-dashboard.js
+// test-dashboard.js
 
+let operator = null;
 let currentAlert = null;
-let checklistSteps = [];
 let slaTimer = null;
-let slaCountdown = 10;
+let slaInterval = null;
 let testAlertActive = false;
-let inactivityTimer = null;
-let operator = "Test Dashboard";
+let lastActivityTime = Date.now();
+let currentScenarioTitle = "";
 
-const testScenarios = [
-  {
-    title: "Fire in Data Center",
-    procedure: "Follow fire emergency protocol",
-    steps: [
-      "Activate fire alarm",
-      "Evacuate building",
-      "Call fire department",
-      "Shut down servers",
-      "Log the incident"
-    ]
-  },
-  {
-    title: "Network Outage",
-    procedure: "Follow network troubleshooting SOP",
-    steps: [
-      "Verify network cable",
-      "Restart router",
-      "Notify IT team",
-      "Switch to backup line",
-      "Document issue in log"
-    ]
-  }
-];
+const loginForm = document.getElementById("loginForm");
+const loginScreen = document.getElementById("loginScreen");
+const dashboard = document.getElementById("dashboard");
 
-// DOM Elements
-const noAlertEl = document.getElementById("noAlert");
-const activeAlertEl = document.getElementById("activeAlert");
-const alertTitleEl = document.getElementById("alertTitle");
-const alertDetailsEl = document.getElementById("alertDetails");
+const noAlert = document.getElementById("noAlert");
+const activeAlert = document.getElementById("activeAlert");
+const alertBox = document.getElementById("alertBox");
+const alertTitle = document.getElementById("alertTitle");
+const alertDetails = document.getElementById("alertDetails");
 const acknowledgeBtn = document.getElementById("acknowledgeBtn");
 const checklistSection = document.getElementById("checklistSection");
 const checklistContainer = document.getElementById("checklistContainer");
 const completeBtn = document.getElementById("completeBtn");
 
-const slaDisplay = document.createElement("div");
-slaDisplay.id = "slaTimer";
-slaDisplay.style.margin = "10px 0";
-slaDisplay.style.fontWeight = "bold";
-slaDisplay.style.color = "#dc3545";
-acknowledgeBtn.before(slaDisplay);
+// 🔐 Login handler
+loginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
 
-// Reset Inactivity Timer
-function resetInactivityTimer() {
-  clearTimeout(inactivityTimer);
-  const randomDelay = Math.floor(Math.random() * 51 + 10) * 1000; // 10–60 sec
-  inactivityTimer = setTimeout(() => {
-    if (!testAlertActive) triggerTestScenario();
-  }, randomDelay);
-}
-
-["click", "mousemove", "keydown"].forEach(evt =>
-  document.addEventListener(evt, resetInactivityTimer)
-);
-
-resetInactivityTimer();
-
-// SSE Connection
-const eventSource = new EventSource("/api/sse");
-
-eventSource.onmessage = function (event) {
-  const data = JSON.parse(event.data);
-  if (data.type === "new-alert") {
-    currentAlert = data.alert;
-    testAlertActive = true;
-    checklistSteps = currentAlert.steps.map(step => ({ text: step, completed: false, fill: step === "______" }));
-
-    noAlertEl.style.display = "none";
-    activeAlertEl.style.display = "block";
-    alertTitleEl.textContent = currentAlert.title;
-    alertDetailsEl.textContent = `ID: ${currentAlert.id} | Procedure: ${currentAlert.procedure}`;
-    checklistSection.style.display = "none";
-    completeBtn.disabled = true;
-
-    animateAlert();
-    startSlaTimer();
-  }
-
-  if (data.type === "acknowledgment" && currentAlert && data.alertId === currentAlert.id) {
-    stopSlaTimer();
-  }
-
-  if (data.type === "alert-completed" && currentAlert && data.alertId === currentAlert.id) {
-    resetDashboard();
-  }
-};
-
-acknowledgeBtn.addEventListener("click", async () => {
-  if (!currentAlert) return;
-  try {
-    await fetch("/api/acknowledge-from-client", {
+  try{
+    const res = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client: operator,
-        originalTitle: currentAlert.title,
-        receivedAt: new Date().toISOString()
-      })
+      body: JSON.stringify({ username, password })
     });
-    renderChecklist();
-    stopSlaTimer();
-  } catch (error) {
-    console.error("Error acknowledging alert:", error);
+
+    const data = await res.json();
+    if (data.status === "success") {
+      operator = data.operator;
+      loginScreen.style.display = "none";
+      dashboard.style.display = "block";
+    } else {
+      alert("Login failed: " + data.message);
+    }
+  } catch (err) {
+    alert("Login error: " + err.message);
   }
 });
 
+// ⏱ Random inactivity alert trigger
+setInterval(() => {
+  const now = Date.now();
+  const idleSeconds = (now - lastActivityTime) / 1000;
+  if (idleSeconds > Math.random() * 50 + 10) {
+    triggerTestScenario();
+    lastActivityTime = Date.now(); // reset
+  }
+}, 10000);
+
+// 🖱 Activity tracking
+["mousemove", "keydown", "click"].forEach(evt =>
+  window.addEventListener(evt, () => lastActivityTime = Date.now())
+);
+
+// 🔔 Receive real-time alerts
+const evtSource = new EventSource("/api/sse");
+evtSource.onmessage = (e) => {
+  const data = JSON.parse(e.data);
+  if (data.type === "new-alert") {
+    showAlert(data.alert);
+  } else if (data.type === "acknowledgment") {
+    if (currentAlert && currentAlert.id === data.alertId) {
+      console.log(`Alert acknowledged by ${data.acknowledgedBy}`);
+    }
+  } else if (data.type === "alert-completed") {
+    if (currentAlert && currentAlert.id === data.alertId) {
+      alert("✅ Alert completed by: " + data.completedBy);
+      resetUI();
+    }
+  }
+};
+
+// 🚨 Show incoming alert
+function showAlert(alert) {
+  currentAlert = alert;
+  testAlertActive = true;
+  noAlert.style.display = "none";
+  activeAlert.style.display = "block";
+  alertBox.classList.add("flashing");
+
+  alertTitle.textContent = alert.title;
+  alertDetails.textContent = `Procedure: ${alert.procedure || "N/A"}`;
+  checklistContainer.innerHTML = "";
+  checklistSection.style.display = "none";
+  completeBtn.disabled = true;
+}
+
+// ✅ Acknowledge button
+acknowledgeBtn.addEventListener("click", async () => {
+  if (!currentAlert || !operator) return;
+
+  try {
+    await fetch(`/api/alerts/${currentAlert.id}/acknowledge`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ operator })
+    });
+
+    checklistSection.style.display = "block";
+    startChecklist(currentAlert.steps || []);
+    startSLATimer(30);
+    alertBox.classList.remove("flashing");
+  } catch (err) {
+    alert("Acknowledge failed: " + err.message);
+  }
+});
+
+// ✅ Complete alert
 completeBtn.addEventListener("click", async () => {
-  if (!currentAlert) return;
+  if (!currentAlert || !operator) return;
+
+  const steps = [];
+  checklistContainer.querySelectorAll(".checklist-item").forEach((item, i) => {
+    const input = item.querySelector("input");
+    const text = item.dataset.text;
+    const filled = input.type === "text" ? input.value.trim() : text;
+    steps.push({ text: filled || text, completed: true });
+  });
+
   try {
     await fetch("/api/complete-alert", {
       method: "POST",
@@ -123,88 +135,106 @@ completeBtn.addEventListener("click", async () => {
       body: JSON.stringify({
         alertId: currentAlert.id,
         completedBy: operator,
-        steps: checklistSteps
+        steps
       })
     });
-    resetDashboard();
-  } catch (error) {
-    console.error("Error completing alert:", error);
+
+    resetUI();
+  } catch (err) {
+    alert("Completion failed: " + err.message);
   }
 });
 
-function renderChecklist() {
-  checklistSection.style.display = "block";
+// 📋 Start checklist
+function startChecklist(steps) {
   checklistContainer.innerHTML = "";
-  checklistContainer.dataset.steps = JSON.stringify(checklistSteps);
-  checklistSteps.forEach((step, index) => {
-    const div = document.createElement("div");
-    div.className = "checklist-item";
+  let completedCount = 0;
+
+  steps.forEach((step, i) => {
+    const item = document.createElement("div");
+    item.className = "checklist-item";
+    item.dataset.text = step.text;
+
     if (step.fill) {
-      div.innerHTML = `<label>Step ${index + 1}: <input type="text" id="fill${index}" placeholder="Fill in answer" /></label>`;
-      checklistContainer.appendChild(div);
-      document.getElementById(`fill${index}`).addEventListener("input", (e) => {
-        checklistSteps[index].text = e.target.value.trim() || "______";
-        checklistSteps[index].completed = !!e.target.value.trim();
-        checkIfAllCompleted();
-      });
+      item.innerHTML = `<input type="text" placeholder="Fill in..." />`;
     } else {
-      div.innerHTML = `<input type="checkbox" id="chk${index}"> <label for="chk${index}">${step.text}</label>`;
-      checklistContainer.appendChild(div);
-      document.getElementById(`chk${index}`).addEventListener("change", (e) => {
-        checklistSteps[index].completed = e.target.checked;
-        checkIfAllCompleted();
-      });
+      item.innerHTML = `<input type="checkbox" /> <label>${step.text}</label>`;
     }
+
+    checklistContainer.appendChild(item);
+
+    const input = item.querySelector("input");
+    input.addEventListener("input", checkCompletion);
+    input.addEventListener("change", checkCompletion);
   });
+
+  function checkCompletion() {
+    const allDone = Array.from(checklistContainer.children).every(item => {
+      const input = item.querySelector("input");
+      return input.type === "text" ? input.value.trim() !== "" : input.checked;
+    });
+    completeBtn.disabled = !allDone;
+  }
 }
 
-function checkIfAllCompleted() {
-  const allDone = checklistSteps.every(step => step.completed);
-  completeBtn.disabled = !allDone;
-}
+// ⏳ SLA Timer
+function startSLATimer(seconds) {
+  let remaining = seconds;
+  if (slaInterval) clearInterval(slaInterval);
 
-function resetDashboard() {
-  currentAlert = null;
-  checklistSteps = [];
-  activeAlertEl.style.display = "none";
-  noAlertEl.style.display = "block";
-  noAlertEl.textContent = "Waiting for new alerts...";
-  slaDisplay.textContent = "";
-  stopSlaTimer();
-  testAlertActive = false;
-  resetInactivityTimer();
-}
-
-function startSlaTimer() {
-  slaCountdown = 10;
-  slaDisplay.textContent = `⏳ SLA: ${slaCountdown}s to acknowledge...`;
-  slaTimer = setInterval(() => {
-    slaCountdown--;
-    if (slaCountdown > 0) {
-      slaDisplay.textContent = `⏳ SLA: ${slaCountdown}s to acknowledge...`;
-    } else {
-      slaDisplay.textContent = "❌ SLA missed!";
-      clearInterval(slaTimer);
+  slaInterval = setInterval(() => {
+    alertDetails.textContent = `⏳ SLA: ${remaining--}s remaining...`;
+    if (remaining < 0) {
+      clearInterval(slaInterval);
+      alert("⚠️ SLA time exceeded!");
     }
   }, 1000);
 }
 
-function stopSlaTimer() {
-  clearInterval(slaTimer);
-  slaDisplay.textContent = "";
+// 🔁 Reset UI
+function resetUI() {
+  currentAlert = null;
+  testAlertActive = false;
+  checklistSection.style.display = "none";
+  checklistContainer.innerHTML = "";
+  noAlert.style.display = "block";
+  activeAlert.style.display = "none";
+  completeBtn.disabled = true;
+  alertBox.classList.remove("flashing");
+  alertDetails.textContent = "";
+  if (slaInterval) clearInterval(slaInterval);
 }
 
-function animateAlert() {
-  const alertBox = document.getElementById("alertBox");
-  if (alertBox) {
-    alertBox.classList.add("flashing");
-    setTimeout(() => alertBox.classList.remove("flashing"), 5000);
+// 🎲 Auto test scenario generator
+const testScenarios = [
+  {
+    title: "🔥 Fire Alarm at Sector A",
+    steps: [
+      "Sound alarm",
+      "Notify fire services",
+      "Evacuate zone A",
+      "Log incident",
+      "Report to supervisor"
+    ]
+  },
+  {
+    title: "⚡ Power Failure in Zone B",
+    steps: [
+      "Switch to backup power",
+      "Check main circuit",
+      "Inform maintenance",
+      "Log downtime",
+      "Update report"
+    ]
   }
-}
+];
 
 function triggerTestScenario() {
-  if (testAlertActive) return;
+  if (testAlertActive || !operator) return;
+
   const scenario = testScenarios[Math.floor(Math.random() * testScenarios.length)];
+  currentScenarioTitle = scenario.title;
+
   const randomizedSteps = scenario.steps.map(step => ({ text: step, fill: false }));
   const blankCount = Math.floor(Math.random() * 3) + 1;
   const indices = [...randomizedSteps.keys()].sort(() => 0.5 - Math.random()).slice(0, blankCount);
@@ -213,19 +243,17 @@ function triggerTestScenario() {
     randomizedSteps[i].text = "______";
   });
 
-  const generatedAlert = {
+  const testAlert = {
     title: scenario.title,
-    procedure: scenario.procedure,
-    steps: randomizedSteps.map(s => s.text),
-    id: "test-" + Date.now(),
-    receivedAt: new Date().toISOString(),
-    via: "Random Test Trigger"
+    procedure: "Follow standard SOP",
+    steps: randomizedSteps
   };
 
-  eventSource.onmessage({
-    data: JSON.stringify({
-      type: "new-alert",
-      alert: generatedAlert
-    })
+  fetch("/api/test-alert", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(testAlert)
+  }).then(res => {
+    if (!res.ok) console.warn("Test alert failed to send");
   });
 }
