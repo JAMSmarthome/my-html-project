@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mock Client</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      background: #f9f9f9;
+    }
+    #log {
+      margin-top: 20px;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 15px;
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    #log p {
+      margin: 0 0 8px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h2>🤖 Mock Client</h2>
+
+  <label for="clientId">Client ID:</label>
+  <input id="clientId" value="MockClient1" placeholder="Enter a client name" />
+
+  <div id="log"><p>Waiting for alerts...</p></div>
+
+  <script src="js/mock-client.js"></script>
+</body>
+</html>

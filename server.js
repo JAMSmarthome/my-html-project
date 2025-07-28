@@ -58,33 +58,38 @@ app.post("/api/test-alert", async (req, res) => {
   console.log("📥 Received test alert:", alertData);
 
   // ✅ Push new alert to all connected clients in real-time
-  broadcastToClients({
-    type: "new-alert",
-    alert: alertData
+broadcastToClients({
+  type: "new-alert",
+  alert: alertData
+});
+
+/*
+// You can uncomment this again later when the mock server is live
+try {
+  const response = await axios.post(THIRD_PARTY_URL, alertData, { timeout: 5000 });
+  console.log("➡️ Third-party response:", response.data);
+  testAlerts[testAlerts.length - 1].thirdPartyResponse = response.data;
+
+  res.json({
+    status: "success",
+    message: "Alert forwarded to third-party successfully",
+    thirdPartyResponse: response.data,
   });
+} catch (error) {
+  console.error("❌ Failed to push alert to third-party:", error.message);
+  testAlerts[testAlerts.length - 1].thirdPartyError = error.message;
 
-  try {
-    const response = await axios.post(THIRD_PARTY_URL, alertData, { timeout: 5000 });
-    console.log("➡️ Third-party response:", response.data);
+  res.status(500).json({
+    status: "error",
+    message: "Failed to forward alert to third-party",
+    error: error.message,
+  });
+}
+*/
 
-    testAlerts[testAlerts.length - 1].thirdPartyResponse = response.data;
-
-    res.json({
-      status: "success",
-      message: "Alert forwarded to third-party successfully",
-      thirdPartyResponse: response.data,
-    });
-  } catch (error) {
-    console.error("❌ Failed to push alert to third-party:", error.message);
-
-    testAlerts[testAlerts.length - 1].thirdPartyError = error.message;
-
-    res.status(500).json({
-      status: "error",
-      message: "Failed to forward alert to third-party",
-      error: error.message,
-    });
-  }
+res.json({
+  status: "success",
+  message: "Alert triggered and broadcasted successfully."
 });
 
 // Manual acknowledgment by operator

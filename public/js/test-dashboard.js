@@ -30,7 +30,7 @@ const testScenarios = [
       "Switch to backup line",
       "Document issue in log"
     ]
-  },
+  }
 ];
 
 // DOM Elements
@@ -73,7 +73,7 @@ eventSource.onmessage = function (event) {
   if (data.type === "new-alert") {
     currentAlert = data.alert;
     testAlertActive = true;
-    checklistSteps = currentAlert.steps.map(step => ({ text: step, completed: false }));
+    checklistSteps = currentAlert.steps.map(step => ({ text: step, completed: false, fill: step === "______" }));
 
     noAlertEl.style.display = "none";
     activeAlertEl.style.display = "block";
@@ -91,7 +91,6 @@ eventSource.onmessage = function (event) {
   }
 
   if (data.type === "alert-completed" && currentAlert && data.alertId === currentAlert.id) {
-    alert(`Alert \"${currentAlert.title}\" has been completed by ${data.completedBy}.`);
     resetDashboard();
   }
 };
@@ -136,31 +135,23 @@ completeBtn.addEventListener("click", async () => {
 function renderChecklist() {
   checklistSection.style.display = "block";
   checklistContainer.innerHTML = "";
+  checklistContainer.dataset.steps = JSON.stringify(checklistSteps);
   checklistSteps.forEach((step, index) => {
     const div = document.createElement("div");
     div.className = "checklist-item";
-
-    if (step.text === "______") {
-      div.innerHTML = `
-        <input type="text" id="input${index}" placeholder="Enter step...">
-      `;
+    if (step.fill) {
+      div.innerHTML = `<label>Step ${index + 1}: <input type="text" id="fill${index}" placeholder="Fill in answer" /></label>`;
       checklistContainer.appendChild(div);
-      const inputEl = document.getElementById(`input${index}`);
-      inputEl.addEventListener("input", (e) => {
-        const val = e.target.value.trim();
-        checklistSteps[index].text = val || "______";
-        checklistSteps[index].completed = !!val;
+      document.getElementById(`fill${index}`).addEventListener("input", (e) => {
+        checklistSteps[index].text = e.target.value.trim() || "______";
+        checklistSteps[index].completed = !!e.target.value.trim();
         checkIfAllCompleted();
       });
     } else {
-      div.innerHTML = `
-        <input type="checkbox" id="chk${index}">
-        <label for="chk${index}">${step.text}</label>
-      `;
+      div.innerHTML = `<input type="checkbox" id="chk${index}"> <label for="chk${index}">${step.text}</label>`;
       checklistContainer.appendChild(div);
       document.getElementById(`chk${index}`).addEventListener("change", (e) => {
         checklistSteps[index].completed = e.target.checked;
-        div.classList.toggle("completed", e.target.checked);
         checkIfAllCompleted();
       });
     }
@@ -205,8 +196,10 @@ function stopSlaTimer() {
 
 function animateAlert() {
   const alertBox = document.getElementById("alertBox");
-  alertBox.classList.add("flashing");
-  setTimeout(() => alertBox.classList.remove("flashing"), 5000);
+  if (alertBox) {
+    alertBox.classList.add("flashing");
+    setTimeout(() => alertBox.classList.remove("flashing"), 5000);
+  }
 }
 
 function triggerTestScenario() {

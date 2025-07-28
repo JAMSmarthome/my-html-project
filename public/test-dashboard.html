@@ -1,128 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Test Alerts Dashboard</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Test Dashboard</title>
+  <link rel="stylesheet" href="css/style.css" />
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
+      background: #f9f9f9;
+      margin: 20px;
     }
-
-    h1 {
-      margin-bottom: 20px;
-    }
-
     #alertBox {
-      width: 450px;
-      background: white;
+      border: 2px solid #dc3545;
       padding: 20px;
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      text-align: center;
-      animation: fadeIn 0.5s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .alert-title {
-      font-size: 20px;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-
-    .alert-details {
-      font-size: 14px;
-      color: #555;
-      margin-bottom: 10px;
-    }
-
-    #acknowledgeBtn, #completeBtn {
-      background: #28a745;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      font-size: 18px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.3s ease;
-      margin-top: 10px;
-    }
-
-    #acknowledgeBtn:hover, #completeBtn:hover {
-      background: #218838;
-    }
-
-    #noAlert {
-      color: #666;
-      font-size: 16px;
-    }
-
-    #checklistSection {
+      background-color: #fff;
+      box-shadow: 0 0 10px rgba(220, 53, 69, 0.2);
       margin-top: 20px;
-      text-align: left;
-      display: none;
     }
-
+    .flashing {
+      animation: flash 1s infinite alternate;
+    }
+    @keyframes flash {
+      from { background-color: #fff3f3; }
+      to { background-color: #ffe5e5; }
+    }
     .checklist-item {
       margin-bottom: 10px;
-      display: flex;
-      align-items: center;
     }
-
-    .checklist-item input[type="checkbox"] {
-      margin-right: 10px;
-    }
-
     .checklist-item.completed label {
       text-decoration: line-through;
       color: green;
     }
-
-    #completeBtn {
-      background: #007bff;
-    }
-
     #slaTimer {
       font-weight: bold;
-      margin-top: 10px;
       color: #dc3545;
     }
-
-    .flashing {
-      animation: flash 1s ease-in-out 5;
+    button {
+      padding: 10px 15px;
+      font-size: 14px;
+      margin-top: 10px;
+      cursor: pointer;
     }
-
-    @keyframes flash {
-      0%, 100% { background-color: white; }
-      50% { background-color: #ffdddd; }
+    #noAlert {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #777;
     }
   </style>
 </head>
 <body>
-  <h1>Test Alerts Dashboard</h1>
-  <div id="alertBox">
-    <p id="noAlert">Waiting for new alerts...</p>
-    <div id="activeAlert" style="display: none;">
-      <p class="alert-title" id="alertTitle"></p>
-      <p class="alert-details" id="alertDetails"></p>
-      <button id="acknowledgeBtn">✅ Acknowledge</button>
-      <div id="checklistSection">
+  <h1>🚨 Test Dashboard</h1>
+
+  <div id="noAlert">Waiting for new alerts...</div>
+
+  <div id="activeAlert" style="display: none;">
+    <div id="alertBox">
+      <h2 id="alertTitle"></h2>
+      <p id="alertDetails"></p>
+      <button id="acknowledgeBtn">Acknowledge Alert</button>
+      <div id="checklistSection" style="display: none;">
         <h3>Checklist</h3>
         <div id="checklistContainer"></div>
-        <button id="completeBtn" disabled>✅ Complete Alert</button>
+        <button id="completeBtn" disabled>Complete Alert</button>
       </div>
     </div>
   </div>
