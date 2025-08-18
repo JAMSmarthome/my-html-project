@@ -391,5 +391,48 @@
     "test": true,
     "completed": true,
     "completedAt": "2025-08-18T20:26:51.557Z"
+  },
+  {
+    "id": 1755551088029,
+    "title": "🔔 Fire Drill at Site A",
+    "procedure": "Evacuate all zones and report to assembly point.",
+    "steps": [
+      "Notify all personnel",
+      "Trigger alarm",
+      "Evacuate building"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "client1",
+    "createdAt": "2025-08-18T21:04:48.029Z",
+    "completed": true
+  },
+  {
+    "id": 1755551391462,
+    "title": "🚨 Test Scenario Triggered",
+    "description": "This is a randomly triggered test scenario.",
+    "steps": [
+      "Step A",
+      "Step B",
+      "Step C"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "test",
+    "createdAt": "2025-08-18T21:09:51.462Z"
+  },
+  {
+    "id": 1755551519361,
+    "title": "🚨 Test Scenario Triggered",
+    "description": "This is a randomly triggered test scenario.",
+    "steps": [
+      "Step A",
+      "Step B",
+      "Step C"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "test",
+    "createdAt": "2025-08-18T21:11:59.361Z"
   }
 ]
