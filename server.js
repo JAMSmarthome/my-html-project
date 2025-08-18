@@ -2,22 +2,24 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const session = require("express-session");
-const bodyParser = require("body-parser");
+const bcrypt = require("bcrypt");
+const cors = require("cors");
 
 const app = express();
 const PORT = 3000;
-const alertLogFile = path.join(__dirname, "alerts.json");
-
-// --- Middleware ---
-app.use(bodyParser.json());
+app.use(cors());
+app.use(express.json());
 app.use(express.static("public"));
+
 app.use(session({
-  secret: "secret-key",
+  secret: "secure-key",
   resave: false,
-  saveUninitialized: true
+  saveUninitialized: true,
 }));
 
-// --- In-memory Clients and API Keys ---
+const alertLogFile = path.join(__dirname, "alerts.json");
+let alerts = fs.existsSync(alertLogFile) ? JSON.parse(fs.readFileSync(alertLogFile)) : [];
+
 const clients = {
   test: [],
   operator: [],
@@ -25,31 +27,19 @@ const clients = {
   client2: []
 };
 
-const API_KEYS = {
-  test: "TEST_API_KEY_123456",
-  client1: "CLIENT1_API_KEY_abcdef",
-  client2: "CLIENT2_API_KEY_xyz789"
-};
-
-// --- Load alerts ---
-let alerts = [];
-if (fs.existsSync(alertLogFile)) {
-  alerts = JSON.parse(fs.readFileSync(alertLogFile));
-}
-
-// --- Auth Users ---
+// 🔐 Hashed user credentials
 const allowedUsers = [
-  { username: "admin", password: "admin123", type: "test" },
-  { username: "operator", password: "operator123", type: "operator" },
-  { username: "client1", password: "client1pass", type: "client1" },
-  { username: "client2", password: "client2pass", type: "client2" }
+  { username: "admin", password: "$2b$10$Yas6N1PO.dGIgjNWXV5uI.YUAJ9fETfZviX7H.wjeCeOSZT20mpfu", type: "test" },
+  { username: "operator", password: "$2b$10$Ft583hTCCvcZxnntSmRraezcCUCJT9mUPbSIaOMFYWCfwe2Z9HuJm", type: "operator" },
+  { username: "client1", password: "$2b$10$QMWkZc73WqRahpIG1KI75eycOphS6QttnDE4P5HDDFTQ0GMhOyjMi", type: "client1" },
+  { username: "client2", password: "$2b$10$fIfcuVuq1.EDucTWva0WLOAtdvvrI3WBKHwZ5eKpDJ3oJcmAAbJmm", type: "client2" }
 ];
 
-// --- Login Endpoint ---
-app.post("/api/login", (req, res) => {
+// 🔐 Login endpoint
+app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
-  const user = allowedUsers.find(u => u.username === username && u.password === password);
-  if (user) {
+  const user = allowedUsers.find(u => u.username === username);
+  if (user && await bcrypt.compare(password, user.password)) {
     req.session.user = { username: user.username, type: user.type };
     res.json({ success: true });
   } else {
@@ -57,46 +47,37 @@ app.post("/api/login", (req, res) => {
   }
 });
 
-// --- SSE Stream ---
+// 🛰️ SSE endpoint
 app.get("/api/sse", (req, res) => {
   const target = req.query.target;
   if (!clients[target]) return res.status(400).end();
 
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
+  res.set({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive"
+  });
+  res.flushHeaders();
 
   clients[target].push(res);
+
   req.on("close", () => {
-    clients[target] = clients[target].filter(c => c !== res);
+    clients[target] = clients[target].filter(client => client !== res);
   });
 });
 
-// --- Broadcast Function ---
-function broadcastTo(target, message) {
-  const json = `data: ${JSON.stringify(message)}\n\n`;
-  if (clients[target]) {
-    clients[target].forEach(res => res.write(json));
-  }
-}
-
-// --- Send Alert (With API Key Protection) ---
+// 🚨 Send Alert via API
 app.post("/api/send-alert", (req, res) => {
   const { title, procedure, steps, target } = req.body;
-  const apiKey = req.headers["x-api-key"];
 
   if (!target || !clients[target]) {
     return res.status(400).json({ error: "Invalid target specified" });
   }
 
-  if (!apiKey || apiKey !== API_KEYS[target]) {
-    return res.status(403).json({ error: "Forbidden – Invalid API Key" });
-  }
-
   const alert = {
     id: Date.now(),
     title,
-    procedure,
+    description: procedure,
     steps,
     sla: 300,
     type: "new-alert",
@@ -110,74 +91,55 @@ app.post("/api/send-alert", (req, res) => {
   res.json({ success: true });
 });
 
-// --- Complete Alert ---
-app.post("/api/complete", (req, res) => {
-  const { alertId } = req.body;
-  alerts = alerts.map(alert => alert.id === alertId ? { ...alert, completed: true } : alert);
-  fs.writeFileSync(alertLogFile, JSON.stringify(alerts, null, 2));
-  res.json({ success: true });
-});
-
-// --- Acknowledge From Client ---
-app.post("/api/acknowledge-from-client", (req, res) => {
-  const { client, originalTitle, receivedAt } = req.body;
-  const alert = alerts.find(a => a.title === originalTitle);
-  if (alert) {
-    broadcastTo(alert.target, {
-      type: "acknowledgment",
-      acknowledgedBy: client,
-      alertId: alert.id,
-      receivedAt
-    });
-  }
-  res.json({ success: true });
-});
-
-// --- Complete Alert (Detailed) ---
-app.post("/api/complete-alert", (req, res) => {
-  const { alertId, completedBy, steps } = req.body;
-  const alert = alerts.find(a => a.id === alertId);
-  if (alert) {
-    alert.steps = steps;
-    alert.completedBy = completedBy;
-    alert.completedAt = new Date().toISOString();
-    fs.writeFileSync(alertLogFile, JSON.stringify(alerts, null, 2));
-    broadcastTo(alert.target, { type: "alert-completed", completedBy });
-  }
-  res.json({ success: true });
-});
-
-// --- Trigger Test Alert ---
+// 🧪 Trigger test alert from inactivity
 app.post("/api/trigger-test", (req, res) => {
+  const { target } = req.body;
+  if (!target || !clients[target]) return res.status(400).json({ error: "Invalid target" });
+
   const alert = {
     id: Date.now(),
-    title: "🚨 Test Scenario Triggered",
-    description: "This is a randomly triggered test scenario.",
-    steps: ["Step A", "Step B", "Step C"],
+    title: `Test Alert - ${new Date().toLocaleTimeString()}`,
+    description: "This is a random test scenario",
+    steps: ["Step 1: Verify alert", "Step 2: Follow SOP", "Step 3: Log outcome"],
     sla: 300,
     type: "new-alert",
-    target: "test",
+    target,
     createdAt: new Date().toISOString()
   };
+
   alerts.push(alert);
   fs.writeFileSync(alertLogFile, JSON.stringify(alerts, null, 2));
-  broadcastTo("test", { type: "new-alert", alert });
+  broadcastTo(target, { type: "new-alert", alert });
   res.json({ success: true });
 });
 
-// --- Export Alerts as CSV ---
+// ✅ Acknowledge and complete alert
+app.post("/api/complete", (req, res) => {
+  const { alertId } = req.body;
+  alerts = alerts.map(alert => alert.id === alertId ? { ...alert, completedAt: new Date().toISOString() } : alert);
+  fs.writeFileSync(alertLogFile, JSON.stringify(alerts, null, 2));
+  res.json({ success: true });
+});
+
+// 📦 Export alerts as CSV
 app.get("/api/export", (req, res) => {
-  const headers = "ID,Title,Procedure,SLA,Created At,Completed,Completed By\n";
-  const rows = alerts.map(a =>
-    `${a.id},"${a.title}","${a.procedure || a.description}",${a.sla},"${a.createdAt}",${a.completed || false},"${a.completedBy || ""}"`
-  );
-  const csv = headers + rows.join("\n");
+  const csv = [
+    "ID,Title,Description,Steps,SLA,Target,Created At,Completed At",
+    ...alerts.map(a => `${a.id},"${a.title}","${a.description}","${(a.steps || []).join(" | ")}",${a.sla},${a.target},${a.createdAt || ""},${a.completedAt || ""}`)
+  ].join("\n");
+
   res.setHeader("Content-Type", "text/csv");
-  res.setHeader("Content-Disposition", "attachment; filename=test-alerts-log.csv");
+  res.setHeader("Content-Disposition", 'attachment; filename="test-alerts-log.csv"');
   res.send(csv);
 });
 
-// --- Start Server ---
+// 🔊 Broadcast function
+function broadcastTo(target, data) {
+  if (!clients[target]) return;
+  const json = `data: ${JSON.stringify(data)}\n\n`;
+  clients[target].forEach(client => client.write(json));
+}
+
 app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+  console.log(`🚨 Server running on http://localhost:${PORT}`);
 });

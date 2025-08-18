@@ -434,5 +434,55 @@
     "type": "new-alert",
     "target": "test",
     "createdAt": "2025-08-18T21:11:59.361Z"
+  },
+  {
+    "id": 1755551911098,
+    "title": "🧪 Random Test Alert",
+    "procedure": "SOP-Test-Flow",
+    "steps": [
+      "Step A",
+      "Step B",
+      "Step C"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "client2",
+    "createdAt": "2025-08-18T21:18:31.098Z"
+  },
+  {
+    "id": 1755553706668,
+    "title": "🚨 TEST ALERT",
+    "steps": [
+      "Check connection to control room",
+      "Simulate response from operator",
+      "Record acknowledgement log"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "test",
+    "createdAt": "2025-08-18T21:48:26.668Z"
+  },
+  {
+    "id": 1755553714956,
+    "title": "🚨 TEST Alert",
+    "description": "Simulated SOP Protocol",
+    "steps": [
+      {
+        "text": "Confirm dispatch",
+        "completed": false
+      },
+      {
+        "text": "Notify client",
+        "completed": false
+      },
+      {
+        "text": "Log case reference",
+        "completed": false
+      }
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "client1",
+    "createdAt": "2025-08-18T21:48:34.956Z"
   }
 ]
