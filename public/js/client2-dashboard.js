@@ -1,14 +1,16 @@
-// public/js/client2.js
+// public/js/client2-dashboard.js
 
+let inactivityTimer;
+let currentAlert = null;
+let slaInterval = null;
+
+// Login flow
 const loginContainer = document.getElementById("login-container");
 const dashboardContainer = document.getElementById("main-dashboard");
 const loginBtn = document.getElementById("loginBtn");
 const loginError = document.getElementById("login-error");
 
-let currentAlert = null;
-let slaInterval = null;
-
-loginBtn?.addEventListener("click", async () => {
+loginBtn.addEventListener("click", async () => {
   const username = document.getElementById("username").value;
   const password = document.getElementById("password").value;
 
@@ -41,28 +43,36 @@ function initDashboard() {
       showAlert(data.alert);
     }
   };
+
+  resetInactivityTimer();
+  document.addEventListener("mousemove", resetInactivityTimer);
+  document.addEventListener("keydown", resetInactivityTimer);
+
+  const exportBtn = document.getElementById("exportLog");
+  if (exportBtn) {
+    exportBtn.addEventListener("click", exportCSV);
+  }
 }
 
 function showAlert(alert) {
   currentAlert = alert;
-
   const alertBox = document.getElementById("active-alert");
   alertBox.innerHTML = `
-    <div class="alert-box">
+    <div class="alert-box ${alert.type}">
       <h3>${alert.title}</h3>
-      <p><strong>Procedure:</strong> ${alert.procedure}</p>
+      <p>${alert.description || ""}</p>
       <ul id="checklist">
         ${alert.steps.map((step, i) => `
           <li>
             <input type="checkbox" id="step-${i}" />
-            <label for="step-${i}">${step}</label>
+            <label for="step-${i}">${step.text || step}</label>
           </li>`).join("")}
       </ul>
-      <div id="sla-timer">SLA: 300 sec</div>
+      <div class="sla-timer" id="sla-timer">SLA: ${alert.sla || 300} sec</div>
       <button onclick="acknowledgeAlert()">Acknowledge</button>
     </div>
   `;
-  startSLATimer(300); // 5 min
+  startSLATimer(alert.sla || 300);
 }
 
 function startSLATimer(seconds) {
@@ -101,4 +111,34 @@ function acknowledgeAlert() {
   clearInterval(slaInterval);
   currentAlert = null;
   document.getElementById("active-alert").innerHTML = "";
+}
+
+function resetInactivityTimer() {
+  clearTimeout(inactivityTimer);
+  const timeout = Math.floor(Math.random() * 50 + 10) * 1000; // 10–60 sec
+  inactivityTimer = setTimeout(triggerTestScenario, timeout);
+}
+
+function triggerTestScenario() {
+  fetch("/api/trigger-test", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ target: "client2" })
+  }).then(() => {
+    const log = document.getElementById("log");
+    log.innerHTML += `<p>🧪 Test alert triggered for client2</p>`;
+  });
+}
+
+function exportCSV() {
+  fetch("/api/export")
+    .then(res => res.blob())
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "client2-alerts-log.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
 }

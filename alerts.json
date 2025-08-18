@@ -374,5 +374,22 @@
     "createdAt": "2025-08-18T20:00:40.973Z",
     "completed": true,
     "completedAt": "2025-08-18T20:00:49.072Z"
+  },
+  {
+    "id": 1755548774477,
+    "title": "🚨 TEST ALERT",
+    "description": "This is a simulated test alert",
+    "steps": [
+      "Confirm dispatch",
+      "Notify client",
+      "Log reference"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "client2",
+    "createdAt": "2025-08-18T20:26:14.477Z",
+    "test": true,
+    "completed": true,
+    "completedAt": "2025-08-18T20:26:51.557Z"
   }
 ]
