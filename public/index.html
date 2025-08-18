@@ -1,0 +1,28 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Operator Dashboard</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="login-container">
+    <h2>Operator Login</h2>
+    <input type="text" id="username" />
+<input type="password" id="password" />
+<button id="loginBtn">Login</button>
+<p id="login-error"></p>
+  </div>
+
+  <div id="main-dashboard" style="display: none;">
+    <h1>Operator Dashboard</h1>
+    <div id="active-alert"></div>
+    <div id="checklist" style="display: none;"></div>
+    <div id="log"></div>
+  </div>
+
+  <script src="js/script.js"></script>
+</body>
+</html>

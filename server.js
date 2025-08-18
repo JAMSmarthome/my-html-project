@@ -1,205 +1,186 @@
 const express = require("express");
-const bodyParser = require("body-parser");
+const session = require("express-session");
 const cors = require("cors");
-const axios = require("axios");
-const { v4: uuidv4 } = require("uuid");
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
 const PORT = 3000;
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 app.use(express.static("public"));
+app.use(session({
+  secret: "secret-key",
+  resave: false,
+  saveUninitialized: true
+}));
 
-let testAlerts = [];
-let sseClients = [];
-
-// 🔐 Mock login users
-const mockUsers = [
-  { username: "operator1", password: "1234" },
-  { username: "operator2", password: "5678" }
+// --- Authentication ---
+const allowedUsers = [
+  { username: "admin", password: "admin123", type: "test" },
+  { username: "operator", password: "operator123", type: "operator" },
+  { username: "client1", password: "client1pass", type: "client1" },
+  { username: "client2", password: "client2pass", type: "client2" }
 ];
 
-// 🔐 Login API
 app.post("/api/login", (req, res) => {
   const { username, password } = req.body;
+  const user = allowedUsers.find(u => u.username === username && u.password === password);
+  if (user) {
+    req.session.user = { username: user.username, type: user.type };
+    res.json({ success: true, type: user.type });
+  } else {
+    res.status(401).json({ error: "Invalid credentials" });
+  }
+});
 
-  const user = mockUsers.find(u => u.username === username && u.password === password);
-  if (!user) {
-    return res.status(401).json({ status: "error", message: "Invalid credentials" });
+// --- SSE Connections ---
+const clients = {
+  test: [],
+  operator: [],
+  client1: [],
+  client2: []
+};
+
+app.get("/api/sse", (req, res) => {
+  const type = req.query.target || req.query.type;
+  if (!type || !clients[type]) {
+    return res.status(400).send("Invalid target type");
   }
 
-  console.log(`🔓 Operator logged in: ${username}`);
-  res.json({ status: "success", operator: username });
-});
-
-// 🔐 Logout API (stateless for now)
-app.post("/api/logout", (req, res) => {
-  res.json({ status: "success", message: "Logged out" });
-});
-
-// ✅ SSE setup
-app.get("/api/sse", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
-  res.flushHeaders();
 
-  sseClients.push(res);
+  clients[type].push(res);
 
   req.on("close", () => {
-    sseClients = sseClients.filter(client => client !== res);
+    clients[type] = clients[type].filter(c => c !== res);
   });
 });
 
-function broadcastToClients(data) {
-  const payload = `data: ${JSON.stringify(data)}\n\n`;
-  sseClients.forEach(client => client.write(payload));
+// --- Broadcast Utility ---
+function broadcastTo(target, data) {
+  if (!clients[target]) return;
+  clients[target].forEach(res => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  });
 }
 
-const THIRD_PARTY_URL = "http://localhost:4000/receive-alert";
+// --- In-Memory API Key Store ---
+const apiKeys = {
+  "client1-api-key": "client1",
+  "client2-api-key": "client2"
+};
 
-// ✅ Trigger test alert
-app.post("/api/test-alert", async (req, res) => {
-  const alertData = req.body;
-  alertData.id = uuidv4();
-  alertData.receivedAt = new Date().toISOString();
-  alertData.acknowledged = false;
-  alertData.completed = false;
-  alertData.via = "Manual Trigger";
+// --- Alert Log ---
+let alerts = [];
+const alertLogFile = path.join(__dirname, "alerts.json");
 
-  alertData.steps = alertData.steps || [
-    "Verify incident details",
-    "Notify supervisor",
-    "Log event in system",
-    "Check safety procedures",
-    "Close the alert after validation"
-  ];
+// Load persisted alerts if available
+if (fs.existsSync(alertLogFile)) {
+  alerts = JSON.parse(fs.readFileSync(alertLogFile));
+}
 
-  testAlerts.push(alertData);
-  console.log("📥 Received test alert:", alertData);
-
-  broadcastToClients({
+// --- Trigger Test Alerts ---
+app.post("/api/trigger-test", (req, res) => {
+  const alert = {
+    id: Date.now(),
+    title: "🚨 TEST ALERT",
+    description: "This is a simulated test alert",
+    steps: ["Confirm dispatch", "Notify client", "Log reference"],
+    sla: 300,
     type: "new-alert",
-    alert: alertData
-  });
+    target: req.body.target || "test",
+    createdAt: new Date().toISOString(),
+    test: true
+  };
 
-  // Skip third-party push for now unless mock is running
-  res.json({
-    status: "success",
-    message: "Alert triggered and broadcasted successfully."
-  });
+  alerts.push(alert);
+  fs.writeFileSync(alertLogFile, JSON.stringify(alerts, null, 2));
 
-  /*
-  try {
-    const response = await axios.post(THIRD_PARTY_URL, alertData, { timeout: 5000 });
-    console.log("➡️ Third-party response:", response.data);
-
-    testAlerts[testAlerts.length - 1].thirdPartyResponse = response.data;
-
-    res.json({
-      status: "success",
-      message: "Alert forwarded to third-party successfully",
-      thirdPartyResponse: response.data,
-    });
-  } catch (error) {
-    console.error("❌ Failed to push alert to third-party:", error.message);
-
-    testAlerts[testAlerts.length - 1].thirdPartyError = error.message;
-
-    res.status(500).json({
-      status: "error",
-      message: "Failed to forward alert to third-party",
-      error: error.message,
-    });
-  }
-  */
+  broadcastTo(alert.target, { type: "new-alert", alert });
+  res.json({ success: true });
 });
 
-// ✅ Acknowledge
-app.post("/api/alerts/:id/acknowledge", (req, res) => {
-  const id = req.params.id;
-  const operator = req.body.operator;
+// --- Send Alert via API ---
+app.post("/api/send-alert", (req, res) => {
+  const { title, procedure, steps, target } = req.body;
 
-  const alert = testAlerts.find(a => a.id === id);
-  if (!alert) {
-    return res.status(404).json({ status: "error", message: "Alert not found" });
+  if (!target || !clients[target]) {
+    return res.status(400).json({ error: "Invalid target specified" });
   }
 
-  alert.acknowledged = true;
-  alert.acknowledgedBy = operator || "Unknown";
-  alert.acknowledgedAt = new Date().toISOString();
-  alert.via = "Manual Acknowledge";
+  const alert = {
+    id: Date.now(),
+    title,
+    procedure,
+    steps,
+    sla: 300,
+    type: "new-alert",
+    target,
+    createdAt: new Date().toISOString()
+  };
 
-  console.log(`✅ Alert ${id} acknowledged by ${operator}`);
-
-  broadcastToClients({
-    type: "acknowledgment",
-    alertId: id,
-    acknowledgedBy: operator,
-    time: alert.acknowledgedAt
-  });
-
-  res.json({ status: "success", message: "Alert acknowledged" });
+  alerts.push(alert);
+  fs.writeFileSync(alertLogFile, JSON.stringify(alerts, null, 2));
+  broadcastTo(target, { type: "new-alert", alert });
+  res.json({ success: true });
 });
 
-// ✅ All alert logs
-app.get("/api/alerts", (req, res) => {
-  res.json(testAlerts);
+// --- API: Receive from third party ---
+app.post("/api/receive-from-third-party", (req, res) => {
+  const apiKey = req.headers["x-api-key"];
+  const clientType = apiKeys[apiKey];
+  if (!clientType) {
+    return res.status(403).json({ error: "Invalid API Key" });
+  }
+
+  const { title, procedure, steps } = req.body;
+  const alert = {
+    id: Date.now(),
+    title,
+    procedure,
+    steps,
+    sla: 300,
+    type: "new-alert",
+    target: clientType,
+    createdAt: new Date().toISOString()
+  };
+
+  alerts.push(alert);
+  fs.writeFileSync(alertLogFile, JSON.stringify(alerts, null, 2));
+  broadcastTo(clientType, { type: "new-alert", alert });
+  res.json({ success: true });
 });
 
-// ✅ API acknowledgment
-app.post("/api/acknowledge-from-client", (req, res) => {
-  const { client, originalTitle, receivedAt } = req.body;
-
-  const alert = testAlerts.find(a => a.title === originalTitle);
+// --- Complete Alert ---
+app.post("/api/complete", (req, res) => {
+  const { alertId } = req.body;
+  const alert = alerts.find(a => a.id === alertId);
   if (alert) {
-    alert.acknowledged = true;
-    alert.acknowledgedBy = client;
-    alert.acknowledgedAt = receivedAt;
-    alert.via = "API Push";
-
-    console.log(`🔁 Alert acknowledged via API Push from ${client}`);
-
-    broadcastToClients({
-      type: "acknowledgment",
-      alertId: alert.id,
-      acknowledgedBy: client,
-      time: receivedAt
-    });
-
-    res.json({ message: "Acknowledgment recorded." });
-  } else {
-    res.status(404).json({ message: "Alert not found" });
+    alert.completed = true;
+    alert.completedAt = new Date().toISOString();
+    broadcastTo(alert.target, { type: "alert-completed", alert });
+    fs.writeFileSync(alertLogFile, JSON.stringify(alerts, null, 2));
   }
+  res.json({ success: true });
 });
 
-// ✅ Complete alert
-app.post("/api/complete-alert", (req, res) => {
-  const { alertId, completedBy, steps } = req.body;
+// --- Export CSV ---
+app.get("/api/export", (req, res) => {
+  const headers = "ID,Title,Type,CreatedAt,Completed,CompletedAt\n";
+  const rows = alerts.map(a =>
+    `${a.id},"${a.title}",${a.target},${a.createdAt},${a.completed || false},${a.completedAt || ""}`
+  ).join("\n");
 
-  const alert = testAlerts.find(a => a.id === alertId);
-  if (!alert) {
-    return res.status(404).json({ status: "error", message: "Alert not found" });
-  }
-
-  alert.completed = true;
-  alert.completedBy = completedBy;
-  alert.completedAt = new Date().toISOString();
-  alert.steps = steps;
-
-  console.log(`✅ Alert ${alertId} completed by ${completedBy}`);
-
-  broadcastToClients({
-    type: "alert-completed",
-    alertId,
-    completedBy
-  });
-
-  res.json({ status: "success", message: "Alert completed successfully" });
+  const csv = headers + rows;
+  res.setHeader("Content-Type", "text/csv");
+  res.setHeader("Content-Disposition", "attachment; filename=alerts.csv");
+  res.send(csv);
 });
 
-// ✅ Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Test Alert API server running at http://localhost:${PORT}`);
+  console.log(`🚨 Server running on http://localhost:${PORT}`);
 });

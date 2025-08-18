@@ -1,9 +1,11 @@
-// public/js/mock-client.js
-
 let currentAlert = null;
 let checklistSteps = [];
 const logContainer = document.getElementById("log");
 const clientIdInput = document.getElementById("clientId");
+const connectBtn = document.getElementById("connectBtn");
+const dashboard = document.getElementById("dashboard");
+const loginContainer = document.getElementById("login-container");
+const clientIdDisplay = document.getElementById("clientIdDisplay");
 
 function log(message) {
   const p = document.createElement("p");
@@ -12,19 +14,33 @@ function log(message) {
   logContainer.scrollTop = logContainer.scrollHeight;
 }
 
-// Listen for real-time alerts via SSE
-const eventSource = new EventSource("/api/sse");
-
-eventSource.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  if (data.type === "new-alert") {
-    handleAlert(data.alert);
-  } else if (data.type === "acknowledgment") {
-    log(`✅ Alert ${data.alertId} acknowledged by ${data.acknowledgedBy}`);
-  } else if (data.type === "alert-completed") {
-    log(`✅ Alert ${data.alertId} completed by ${data.completedBy}`);
+// Establish connection after clicking "Connect"
+connectBtn.addEventListener("click", () => {
+  const clientId = clientIdInput.value.trim();
+  if (!clientId) {
+    alert("Please enter a mock client name.");
+    return;
   }
-};
+
+  // Hide login and show dashboard
+  loginContainer.style.display = "none";
+  dashboard.style.display = "block";
+  clientIdDisplay.textContent = clientId;
+
+  // Connect with SSE and listen only to 'mock' dashboard alerts
+  const eventSource = new EventSource("/api/sse?type=mock");
+
+  eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.type === "new-alert") {
+      handleAlert(data.alert);
+    } else if (data.type === "acknowledgment") {
+      log(`✅ Alert ${data.alertId} acknowledged by ${data.acknowledgedBy}`);
+    } else if (data.type === "alert-completed") {
+      log(`✅ Alert ${data.alertId} completed by ${data.completedBy}`);
+    }
+  };
+});
 
 function handleAlert(alert) {
   currentAlert = alert;
@@ -53,7 +69,7 @@ async function acknowledgeAlert() {
       })
     });
     log(`📬 Acknowledged alert "${currentAlert.title}" as ${client}`);
-    completeAlert(); // Automatically proceed to simulate completion
+    completeAlert(); // Automatically simulate completion
   } catch (err) {
     log(`❌ Failed to acknowledge alert: ${err.message}`);
   }
@@ -62,8 +78,6 @@ async function acknowledgeAlert() {
 async function completeAlert() {
   if (!currentAlert) return;
   const client = clientIdInput.value || "MockClient";
-
-  // Simulate completing all steps
   checklistSteps.forEach(s => (s.completed = true));
 
   try {

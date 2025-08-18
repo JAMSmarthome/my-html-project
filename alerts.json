@@ -1,0 +1,378 @@
+[
+  {
+    "id": "1ec6451a-3655-4d6d-92da-03e6f7ea35b4",
+    "title": "Test Alert 5:21:31 PM",
+    "procedure": "Follow all SOP steps",
+    "steps": [
+      {
+        "text": "Check system",
+        "completed": true
+      },
+      {
+        "text": "Notify team",
+        "completed": true
+      },
+      {
+        "text": "Log action",
+        "completed": true
+      }
+    ],
+    "timestamp": "2025-08-18T15:21:31.382Z",
+    "acknowledged": true,
+    "completed": true,
+    "acknowledgedBy": "Operator",
+    "completedBy": "TestOperator"
+  },
+  {
+    "id": "3ccbe9b9-aa40-4160-aaf7-dcbf4d356f09",
+    "title": "Test Alert 5:21:54 PM",
+    "procedure": "Follow all SOP steps",
+    "steps": [
+      "Check system",
+      "Notify team",
+      "Log action"
+    ],
+    "timestamp": "2025-08-18T15:21:54.857Z",
+    "acknowledged": false,
+    "completed": false
+  },
+  {
+    "id": "20580be7-caf1-4f98-a04e-38d679ec7d0c",
+    "title": "Test Alert 8:08:51 PM",
+    "procedure": "Follow all SOP steps",
+    "steps": [
+      {
+        "text": "Check system",
+        "completed": true
+      },
+      {
+        "text": "Notify team",
+        "completed": true
+      },
+      {
+        "text": "Log action",
+        "completed": true
+      }
+    ],
+    "timestamp": "2025-08-18T18:08:51.604Z",
+    "acknowledged": true,
+    "completed": true,
+    "acknowledgedBy": "Operator",
+    "completedBy": "TestOperator"
+  },
+  {
+    "id": "c04099dc-e725-4fd3-a04b-290d122655a0",
+    "title": "Test Alert 8:09:17 PM",
+    "procedure": "Follow all SOP steps",
+    "steps": [
+      {
+        "text": "Check system",
+        "completed": true
+      },
+      {
+        "text": "Notify team",
+        "completed": true
+      },
+      {
+        "text": "Log action",
+        "completed": true
+      }
+    ],
+    "timestamp": "2025-08-18T18:09:17.807Z",
+    "acknowledged": true,
+    "completed": true,
+    "acknowledgedBy": "Operator",
+    "completedBy": "TestOperator"
+  },
+  {
+    "id": "05c9785d-2664-48a5-a5c2-c3b7363aee61",
+    "title": "Test Alert 8:11:14 PM",
+    "procedure": "Follow all SOP steps",
+    "steps": [
+      {
+        "text": "Check system",
+        "completed": true
+      },
+      {
+        "text": "Notify team",
+        "completed": true
+      },
+      {
+        "text": "Log action",
+        "completed": true
+      }
+    ],
+    "timestamp": "2025-08-18T18:11:14.151Z",
+    "acknowledged": true,
+    "completed": true,
+    "acknowledgedBy": "Operator",
+    "completedBy": "TestOperator"
+  },
+  {
+    "id": "d5dca16f-7214-4068-972d-fc1d6f070aa4",
+    "title": "Test Alert 8:12:13 PM",
+    "procedure": "Follow all SOP steps",
+    "steps": [
+      {
+        "text": "Check system",
+        "completed": true
+      },
+      {
+        "text": "Notify team",
+        "completed": true
+      },
+      {
+        "text": "Log action",
+        "completed": true
+      }
+    ],
+    "timestamp": "2025-08-18T18:12:13.119Z",
+    "acknowledged": true,
+    "completed": true,
+    "acknowledgedBy": "MockClient",
+    "completedBy": "MockClient"
+  },
+  {
+    "id": 1755546769801,
+    "title": "🚨 TEST ALERT",
+    "steps": [
+      "Check connection to control room",
+      "Simulate response from operator",
+      "Record acknowledgement log"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "test",
+    "createdAt": "2025-08-18T19:52:49.801Z",
+    "completed": true,
+    "completedAt": "2025-08-18T19:53:30.649Z"
+  },
+  {
+    "id": 1755546828768,
+    "title": "🚨 TEST Alert",
+    "procedure": "Simulated SOP Protocol",
+    "steps": [
+      {
+        "text": "Confirm dispatch",
+        "completed": false
+      },
+      {
+        "text": "Notify client",
+        "completed": false
+      },
+      {
+        "text": "Log case reference",
+        "completed": false
+      }
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "client1",
+    "createdAt": "2025-08-18T19:53:48.768Z"
+  },
+  {
+    "id": 1755546839538,
+    "title": "🚨 TEST ALERT",
+    "steps": [
+      "Check connection to control room",
+      "Simulate response from operator",
+      "Record acknowledgement log"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "test",
+    "createdAt": "2025-08-18T19:53:59.538Z",
+    "completed": true,
+    "completedAt": "2025-08-18T19:54:10.258Z"
+  },
+  {
+    "id": 1755547022283,
+    "title": "🚨 TEST ALERT",
+    "steps": [
+      "Check connection to control room",
+      "Simulate response from operator",
+      "Record acknowledgement log"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "test",
+    "createdAt": "2025-08-18T19:57:02.283Z",
+    "completed": true,
+    "completedAt": "2025-08-18T19:57:12.942Z"
+  },
+  {
+    "id": 1755547044337,
+    "title": "🚨 TEST ALERT",
+    "steps": [
+      "Check connection to control room",
+      "Simulate response from operator",
+      "Record acknowledgement log"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "test",
+    "createdAt": "2025-08-18T19:57:24.337Z",
+    "completed": true,
+    "completedAt": "2025-08-18T19:57:32.008Z"
+  },
+  {
+    "id": 1755547085453,
+    "title": "🚨 TEST Alert",
+    "procedure": "Simulated SOP Protocol",
+    "steps": [
+      {
+        "text": "Confirm dispatch",
+        "completed": false
+      },
+      {
+        "text": "Notify client",
+        "completed": false
+      },
+      {
+        "text": "Log case reference",
+        "completed": false
+      }
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "client1",
+    "createdAt": "2025-08-18T19:58:05.453Z",
+    "completed": true,
+    "completedAt": "2025-08-18T19:58:27.160Z"
+  },
+  {
+    "id": 1755547096528,
+    "title": "🚨 TEST ALERT",
+    "steps": [
+      "Check connection to control room",
+      "Simulate response from operator",
+      "Record acknowledgement log"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "test",
+    "createdAt": "2025-08-18T19:58:16.528Z",
+    "completed": true,
+    "completedAt": "2025-08-18T19:58:22.384Z"
+  },
+  {
+    "id": 1755547120384,
+    "title": "🚨 TEST Alert",
+    "procedure": "Simulated SOP Protocol",
+    "steps": [
+      {
+        "text": "Confirm dispatch",
+        "completed": false
+      },
+      {
+        "text": "Notify client",
+        "completed": false
+      },
+      {
+        "text": "Log case reference",
+        "completed": false
+      }
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "client1",
+    "createdAt": "2025-08-18T19:58:40.384Z",
+    "completed": true,
+    "completedAt": "2025-08-18T19:58:45.900Z"
+  },
+  {
+    "id": 1755547123360,
+    "title": "🚨 TEST ALERT",
+    "steps": [
+      "Check connection to control room",
+      "Simulate response from operator",
+      "Record acknowledgement log"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "test",
+    "createdAt": "2025-08-18T19:58:43.360Z",
+    "completed": true,
+    "completedAt": "2025-08-18T19:58:51.275Z"
+  },
+  {
+    "id": 1755547147688,
+    "title": "🚨 TEST Alert",
+    "procedure": "Simulated SOP Protocol",
+    "steps": [
+      {
+        "text": "Confirm dispatch",
+        "completed": false
+      },
+      {
+        "text": "Notify client",
+        "completed": false
+      },
+      {
+        "text": "Log case reference",
+        "completed": false
+      }
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "client1",
+    "createdAt": "2025-08-18T19:59:07.688Z",
+    "completed": true,
+    "completedAt": "2025-08-18T19:59:17.711Z"
+  },
+  {
+    "id": 1755547197109,
+    "title": "🚨 TEST ALERT",
+    "steps": [
+      "Check connection to control room",
+      "Simulate response from operator",
+      "Record acknowledgement log"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "test",
+    "createdAt": "2025-08-18T19:59:57.109Z",
+    "completed": true,
+    "completedAt": "2025-08-18T20:00:03.026Z"
+  },
+  {
+    "id": 1755547236938,
+    "title": "🚨 TEST Alert",
+    "procedure": "Simulated SOP Protocol",
+    "steps": [
+      {
+        "text": "Confirm dispatch",
+        "completed": false
+      },
+      {
+        "text": "Notify client",
+        "completed": false
+      },
+      {
+        "text": "Log case reference",
+        "completed": false
+      }
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "client1",
+    "createdAt": "2025-08-18T20:00:36.938Z",
+    "completed": true,
+    "completedAt": "2025-08-18T20:00:42.174Z"
+  },
+  {
+    "id": 1755547240973,
+    "title": "🚨 TEST ALERT",
+    "steps": [
+      "Check connection to control room",
+      "Simulate response from operator",
+      "Record acknowledgement log"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "test",
+    "createdAt": "2025-08-18T20:00:40.973Z",
+    "completed": true,
+    "completedAt": "2025-08-18T20:00:49.072Z"
+  }
+]

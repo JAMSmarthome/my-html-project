@@ -1,73 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Test Dashboard</title>
-  <link rel="stylesheet" href="css/style.css">
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #f9f9f9;
-      margin: 20px;
-    }
-    #loginScreen, #dashboard {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    #loginScreen input {
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-    }
-    #alertBox.flashing {
-      animation: flash 1s infinite;
-    }
-    @keyframes flash {
-      0% { background-color: #fff; }
-      50% { background-color: #ffe5e5; }
-      100% { background-color: #fff; }
-    }
-    .checklist-item.completed label {
-      text-decoration: line-through;
-      color: gray;
-    }
-  </style>
+  <link rel="stylesheet" href="css/style.css"/>
 </head>
 <body>
-
-  <!-- 🔐 Login UI -->
-  <div id="loginScreen">
-    <h2>Login to Test Dashboard</h2>
-    <form id="loginForm">
-      <input type="text" id="username" placeholder="Username" required />
-      <input type="password" id="password" placeholder="Password" required />
-      <button type="submit">Login</button>
-    </form>
+  <div id="login-container">
+    <h2>Login</h2>
+    <input type="text" id="username" placeholder="Username"/>
+    <input type="password" id="password" placeholder="Password"/>
+    <button id="loginBtn">Login</button>
+    <p id="login-error" style="color:red;"></p>
   </div>
 
-  <!-- 🖥️ Dashboard UI -->
-  <div id="dashboard" style="display: none;">
-    <h2>🚨 Test Alert Dashboard</h2>
-
-    <div id="noAlert">Waiting for new alerts...</div>
-
-    <div id="activeAlert" style="display: none;">
-      <div id="alertBox" style="padding: 15px; border: 2px solid #dc3545; border-radius: 8px;">
-        <h3 id="alertTitle">Alert Title</h3>
-        <p id="alertDetails">Alert Details</p>
-
-        <button id="acknowledgeBtn">Acknowledge</button>
-        <div id="checklistSection" style="display: none;">
-          <h4>Checklist</h4>
-          <div id="checklistContainer"></div>
-          <button id="completeBtn" disabled>Complete Alert</button>
-        </div>
-      </div>
-    </div>
+  <div id="main-dashboard" style="display:none;">
+    <h2>Test Dashboard</h2>
+    <div id="active-alert"></div>
+    <button id="exportLog">Export Log</button>
+    <div id="log"></div>
   </div>
 
   <script src="js/test-dashboard.js"></script>
