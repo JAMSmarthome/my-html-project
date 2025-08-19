@@ -1,145 +1,155 @@
+// ✅ FULL UPDATED server.js (Step 2)
 const express = require("express");
-const fs = require("fs");
-const path = require("path");
 const session = require("express-session");
 const bcrypt = require("bcrypt");
+const admin = require("firebase-admin");
 const cors = require("cors");
+const path = require("path");
 
+const serviceAccount = require("./firebase-service-account.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+const db = admin.firestore();
 const app = express();
 const PORT = 3000;
-app.use(cors());
+
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.static("public"));
 
-app.use(session({
-  secret: "secure-key",
-  resave: false,
-  saveUninitialized: true,
-}));
+app.use(
+  session({
+    secret: "secure-key",
+    resave: false,
+    saveUninitialized: true,
+  })
+);
 
-const alertLogFile = path.join(__dirname, "alerts.json");
-let alerts = fs.existsSync(alertLogFile) ? JSON.parse(fs.readFileSync(alertLogFile)) : [];
-
-const clients = {
-  test: [],
-  operator: [],
-  client1: [],
-  client2: []
-};
-
-// 🔐 Hashed user credentials
-const allowedUsers = [
-  { username: "admin", password: "$2b$10$Yas6N1PO.dGIgjNWXV5uI.YUAJ9fETfZviX7H.wjeCeOSZT20mpfu", type: "test" },
-  { username: "operator", password: "$2b$10$Ft583hTCCvcZxnntSmRraezcCUCJT9mUPbSIaOMFYWCfwe2Z9HuJm", type: "operator" },
-  { username: "client1", password: "$2b$10$QMWkZc73WqRahpIG1KI75eycOphS6QttnDE4P5HDDFTQ0GMhOyjMi", type: "client1" },
-  { username: "client2", password: "$2b$10$fIfcuVuq1.EDucTWva0WLOAtdvvrI3WBKHwZ5eKpDJ3oJcmAAbJmm", type: "client2" }
-];
-
-// 🔐 Login endpoint
-app.post("/api/login", async (req, res) => {
+// 🔐 Client Login via Firestore (with password field used)
+app.post("/api/client-login", async (req, res) => {
   const { username, password } = req.body;
-  const user = allowedUsers.find(u => u.username === username);
-  if (user && await bcrypt.compare(password, user.password)) {
-    req.session.user = { username: user.username, type: user.type };
+  if (!username || !password)
+    return res.status(400).json({ error: "Missing credentials" });
+
+  try {
+    const snapshot = await db
+      .collection("clients")
+      .where("username", "==", username)
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) return res.status(401).json({ error: "User not found" });
+
+    const clientDoc = snapshot.docs[0];
+    const client = clientDoc.data();
+
+    if (!client.password) return res.status(401).json({ error: "Missing password in Firestore" });
+
+    const valid = await bcrypt.compare(password, client.password);
+    if (!valid) return res.status(401).json({ error: "Invalid password" });
+
+    req.session.user = {
+      username: client.username,
+      lane: client.lane,
+      isClient: true,
+    };
+
+    res.json({ success: true, lane: client.lane });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Client logout
+app.post("/api/client-logout", (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie("connect.sid");
     res.json({ success: true });
-  } else {
-    res.status(401).json({ error: "Invalid credentials" });
-  }
-});
-
-// 🛰️ SSE endpoint
-app.get("/api/sse", (req, res) => {
-  const target = req.query.target;
-  if (!clients[target]) return res.status(400).end();
-
-  res.set({
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    Connection: "keep-alive"
-  });
-  res.flushHeaders();
-
-  clients[target].push(res);
-
-  req.on("close", () => {
-    clients[target] = clients[target].filter(client => client !== res);
   });
 });
 
-// 🚨 Send Alert via API
-app.post("/api/send-alert", (req, res) => {
-  const { title, procedure, steps, target } = req.body;
-
-  if (!target || !clients[target]) {
-    return res.status(400).json({ error: "Invalid target specified" });
+// 🔍 GET client config
+app.get("/api/client-config", async (req, res) => {
+  if (!req.session.user || !req.session.user.isClient) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const alert = {
-    id: Date.now(),
-    title,
-    description: procedure,
-    steps,
-    sla: 300,
-    type: "new-alert",
-    target,
-    createdAt: new Date().toISOString()
-  };
+  try {
+    const snapshot = await db
+      .collection("clients")
+      .where("username", "==", req.session.user.username)
+      .limit(1)
+      .get();
 
-  alerts.push(alert);
-  fs.writeFileSync(alertLogFile, JSON.stringify(alerts, null, 2));
-  broadcastTo(target, { type: "new-alert", alert });
-  res.json({ success: true });
+    if (snapshot.empty) return res.status(404).json({ error: "Client not found" });
+
+    const client = snapshot.docs[0].data();
+    res.json({ config: client.config || {} });
+  } catch (err) {
+    console.error("Config GET error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
-// 🧪 Trigger test alert from inactivity
-app.post("/api/trigger-test", (req, res) => {
-  const { target } = req.body;
-  if (!target || !clients[target]) return res.status(400).json({ error: "Invalid target" });
+// ✏️ PUT client config
+app.put("/api/client-config", async (req, res) => {
+  if (!req.session.user || !req.session.user.isClient) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
 
-  const alert = {
-    id: Date.now(),
-    title: `Test Alert - ${new Date().toLocaleTimeString()}`,
-    description: "This is a random test scenario",
-    steps: ["Step 1: Verify alert", "Step 2: Follow SOP", "Step 3: Log outcome"],
-    sla: 300,
-    type: "new-alert",
-    target,
-    createdAt: new Date().toISOString()
-  };
+  const newConfig = req.body.config;
+  if (!newConfig) return res.status(400).json({ error: "Missing config data" });
 
-  alerts.push(alert);
-  fs.writeFileSync(alertLogFile, JSON.stringify(alerts, null, 2));
-  broadcastTo(target, { type: "new-alert", alert });
-  res.json({ success: true });
+  try {
+    const snapshot = await db
+      .collection("clients")
+      .where("username", "==", req.session.user.username)
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) return res.status(404).json({ error: "Client not found" });
+
+    const clientDoc = snapshot.docs[0].ref;
+    await clientDoc.update({ config: newConfig });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Config PUT error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
-// ✅ Acknowledge and complete alert
-app.post("/api/complete", (req, res) => {
-  const { alertId } = req.body;
-  alerts = alerts.map(alert => alert.id === alertId ? { ...alert, completedAt: new Date().toISOString() } : alert);
-  fs.writeFileSync(alertLogFile, JSON.stringify(alerts, null, 2));
-  res.json({ success: true });
+// ✅ PUT /api/client-config — Update current client's config
+app.put("/api/client-config", async (req, res) => {
+  if (!req.session.user || !req.session.user.isClient) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const { config } = req.body;
+  if (!config || typeof config !== "object") {
+    return res.status(400).json({ error: "Invalid config payload" });
+  }
+
+  try {
+    await db.collection("clients").doc(req.session.user.docId).update({
+      config: config
+    });
+
+    res.json({ success: true, updatedConfig: config });
+  } catch (err) {
+    console.error("Update config error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
-// 📦 Export alerts as CSV
-app.get("/api/export", (req, res) => {
-  const csv = [
-    "ID,Title,Description,Steps,SLA,Target,Created At,Completed At",
-    ...alerts.map(a => `${a.id},"${a.title}","${a.description}","${(a.steps || []).join(" | ")}",${a.sla},${a.target},${a.createdAt || ""},${a.completedAt || ""}`)
-  ].join("\n");
-
-  res.setHeader("Content-Type", "text/csv");
-  res.setHeader("Content-Disposition", 'attachment; filename="test-alerts-log.csv"');
-  res.send(csv);
-});
-
-// 🔊 Broadcast function
-function broadcastTo(target, data) {
-  if (!clients[target]) return;
-  const json = `data: ${JSON.stringify(data)}\n\n`;
-  clients[target].forEach(client => client.write(json));
-}
-
+// 🚀 Start Server
 app.listen(PORT, () => {
-  console.log(`🚨 Server running on http://localhost:${PORT}`);
+  console.log(`\u{1F6A8} Server running on http://localhost:${PORT}`);
 });

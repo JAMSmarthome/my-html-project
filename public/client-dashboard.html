@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Client Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2em;
+    }
+    .hidden {
+      display: none;
+    }
+    #configUI label {
+      display: block;
+      margin-bottom: 1em;
+    }
+    small {
+      display: block;
+      margin-left: 1.5em;
+    }
+    button {
+      padding: 0.5em 1em;
+      margin-top: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Client Dashboard</h1>
+
+  <div id="loginForm">
+    <h2>Login</h2>
+    <input type="text" id="username" placeholder="Username" /><br />
+    <input type="password" id="password" placeholder="Password" /><br />
+    <button onclick="login()">Login</button>
+  </div>
+
+  <div id="configUI" class="hidden">
+    <h2>
+      Configuration
+      <button id="logoutBtn" style="float: right; background: #dc3545; color: white;">Logout</button>
+    </h2>
+    <label>
+      Test Frequency (minutes):
+      <input type="number" id="testFrequencyMinutes" min="1" />
+    </label>
+
+    <fieldset>
+      <legend><strong>Enabled Scenarios</strong></legend>
+
+      <label>
+        <input type="checkbox" id="fire" />
+        <strong>Fire Scenario</strong><br />
+        <small style="color: gray;">Simulates a fire alert requiring evacuation procedures.</small>
+      </label>
+
+      <label>
+        <input type="checkbox" id="evacuation" />
+        <strong>Evacuation Scenario</strong><br />
+        <small style="color: gray;">Simulates general building evacuation, not fire-related.</small>
+      </label>
+
+      <label>
+        <input type="checkbox" id="systemDown" />
+        <strong>System Down Scenario</strong><br />
+        <small style="color: gray;">Simulates a major IT system outage requiring recovery protocol.</small>
+      </label>
+    </fieldset>
+
+    <button onclick="saveConfig()">Save Configuration</button>
+  </div>
+
+  <script>
+    async function login() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+
+      const res = await fetch("/api/client-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById("loginForm").classList.add("hidden");
+        document.getElementById("configUI").classList.remove("hidden");
+        loadConfig();
+      } else {
+        alert(data.error || "Login failed");
+      }
+    }
+
+    async function loadConfig() {
+      const res = await fetch("/api/client-config");
+      const data = await res.json();
+      if (data.config) {
+        document.getElementById("testFrequencyMinutes").value = data.config.testFrequencyMinutes;
+        document.getElementById("fire").checked = data.config.enabledScenarios.fire;
+        document.getElementById("evacuation").checked = data.config.enabledScenarios.evacuation;
+        document.getElementById("systemDown").checked = data.config.enabledScenarios.systemDown;
+      }
+    }
+
+    async function saveConfig() {
+      const config = {
+        testFrequencyMinutes: parseInt(document.getElementById("testFrequencyMinutes").value),
+        enabledScenarios: {
+          fire: document.getElementById("fire").checked,
+          evacuation: document.getElementById("evacuation").checked,
+          systemDown: document.getElementById("systemDown").checked,
+        },
+      };
+
+      const res = await fetch("/api/client-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert("Configuration updated!");
+      } else {
+        alert(data.error || "Update failed");
+      }
+    }
+
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await fetch("/api/client-logout", { method: "POST" });
+      location.reload();
+    });
+
+    async function checkSession() {
+      const res = await fetch("/api/client-config");
+      const data = await res.json();
+      if (data.config) {
+        document.getElementById("loginForm").classList.add("hidden");
+        document.getElementById("configUI").classList.remove("hidden");
+        loadConfig();
+      }
+    }
+
+    checkSession();
+  </script>
+</body>
+</html>

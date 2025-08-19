@@ -1,223 +1,105 @@
-<<<<<<< HEAD
-# Emergency Test System
+# 🚨 Emergency Test System
 
-This project is a multi-tenant emergency alert testing platform. It is designed to simulate real-time emergency scenarios and evaluate the response readiness of different control rooms/operators through randomized alert triggers and checklists.
-=======
-// This Node.js script appends README.md to your project directory
-const fs = require('fs');
-const path = require('path');
-
-const readmeContent = `
-# Emergency Test System
-
-This project is a multi-tenant emergency alert testing platform. It simulates real-time emergency scenarios and evaluates the response readiness of different control rooms/operators through randomized alert triggers and checklists.
->>>>>>> 55f62d5 (📝 Updated README with API key instructions and full architecture overview)
+A full-stack Node.js + Firebase platform for simulating emergency alerts, measuring SLA compliance, and providing isolated dashboards for clients to manage test scenarios and configurations.
 
 ---
 
-## 🚀 Features
+## ✨ Features
 
-- 🔐 Secure login system for each client lane
-- 🎯 Supports multiple control rooms (multi-lane architecture)
-  - Test Lane
-  - Operator Dashboard
-  - Client 1
-  - Client 2
-- 🔁 Random inactivity triggers simulate real-time alerts
-- ✅ Checklist & Acknowledgement system per alert
-- 📈 SLA Countdown timers
-- 📤 CSV export for reporting
-- 📡 Server-Sent Events (SSE) for real-time alert delivery
-<<<<<<< HEAD
-- 🧪 API integration for third-party control rooms
-=======
-- 🧪 API integration for third-party control rooms with API keys
->>>>>>> 55f62d5 (📝 Updated README with API key instructions and full architecture overview)
+### 🔐 Client Dashboard
+- Secure login using hashed credentials (bcrypt)
+- View & edit per-client test configurations:
+  - `testFrequencyMinutes`: frequency of test alerts
+  - `enabledScenarios`: fire, evacuation, system down, etc.
+- Logout support
+- Scenario toggle UI with per-scenario descriptions
+- Session-based access
 
----
+### 🧪 Emergency Alert Simulation
+- Trigger alerts randomly or manually
+- SLA tracking: acknowledgment and completion timers
+- Animated UI for test-dashboard and mock clients
+- CSV export for logs (test + mock)
+- `target`-based alert routing for multi-lane support
 
-## 📂 Project Structure
-<<<<<<< HEAD
-=======
-
-\`\`\`
->>>>>>> 55f62d5 (📝 Updated README with API key instructions and full architecture overview)
-emergency-test-system/
-├── public/
-│   ├── client1.html
-│   ├── client2.html
-<<<<<<< HEAD
-│   ├── index.html          # Operator dashboard
-│   ├── test-dashboard.html
-│   ├── js/
-│   │   ├── script.js               # Operator logic
-│   │   ├── test-dashboard.js      # Test lane logic
-│   │   ├── client1-dashboard.js   # Client 1 logic
-│   │   └── client2-dashboard.js   # Client 2 logic
-├── alerts.json             # Stores alert logs
-├── server.js               # Express backend with SSE
-├── package.json
-└── README.md
-=======
-│   ├── index.html
-│   ├── test-dashboard.html
-│   ├── js/
-│   │   ├── script.js
-│   │   ├── test-dashboard.js
-│   │   ├── client1-dashboard.js
-│   │   └── client2-dashboard.js
-├── alerts.json
-├── server.js
-├── package.json
-└── README.md
-\`\`\`
-
->>>>>>> 55f62d5 (📝 Updated README with API key instructions and full architecture overview)
----
-
-## 🔑 Login Credentials
-
-| Dashboard      | Username  | Password      |
-|----------------|-----------|---------------|
-| Operator       | admin     | admin123      |
-| Test Lane      | test      | test123       |
-| Client 1       | client1   | client1pass   |
-| Client 2       | client2   | client2pass   |
+### ⚙️ Admin Tools
+- Seed clients and default configuration into Firestore
+- Session-based `/api/client-config` GET/PUT endpoints
+- Separate dashboards for control room (admin) and clients
+- Client config stored securely in Firestore with hashed passwords
 
 ---
 
-## 📦 Setup Instructions
+## 🚀 Getting Started
 
-### 1. Install dependencies
+### 1. Clone the Repo
 
-<<<<<<< HEAD
 ```bash
+git clone https://github.com/YOUR_USERNAME/emergency-test-system.git
+cd emergency-test-system
+
+2. Install Dependencies
 npm install
 
-2. Start the server = node server.js
-Server will be running at: http://localhost:3000
+3. Add Firebase Credentials
 
-Dashboard URLs:
+Place your Firebase Admin SDK key in the project root: touch firebase-service-account.json
 
-Operator
+🧪 Running the Server
+node server.js
+
+Server runs at:
 http://localhost:3000
 
-Test Lane
-http://localhost:3000/test-dashboard.html
-
-Client 1
-http://localhost:3000/client1.html
-
-Client 2
-http://localhost:3000/client2.html
-
-API Endpoints:
-POST /api/send-alert
-Sends an alert to a specific target lane.
-{
-  "title": "🚨 Test Alert",
-  "procedure": "Test SOP Flow",
-  "steps": [
-    { "text": "Step 1", "completed": false },
-    { "text": "Step 2", "completed": false }
-  ],
-  "target": "client1"
-}
-To-Do for Production
-	•	Secure API keys per lane
-	•	Use bcrypt password hashing
-	•	Migrate alerts.json to a proper database (MongoDB / SQLite)
-	•	Add rate limiting
-	•	Implement admin dashboard for control and analytics
-	•	Containerize (Docker)
-	•	Enable CI/CD and deployment
+🌐 Dashboards
+	•	Operator/Admin Dashboard: http://localhost:3000/index.html
+	•	Test Dashboard: http://localhost:3000/test-dashboard.html
+	•	Client Config Dashboard: http://localhost:3000/client-dashboard.html
 
 ⸻
 
-🧪 License
+🔄 Seeding Clients (Optional)
 
-MIT License
-=======
-\`\`\`bash
-npm install
-\`\`\`
+Run the following scripts to populate Firestore with example clients and default config:
 
-### 2. Start the server
+node seed-clients.js
+node seed-client-config.js
 
-\`\`\`bash
-node server.js
-\`\`\`
+📁 Folder Structure
 
-Server will be running at: [http://localhost:3000](http://localhost:3000)
+emergency-test-system/
+├── public/
+│   ├── index.html
+│   ├── test-dashboard.html
+│   ├── client-dashboard.html
+│   ├── script.js
+│   ├── test-dashboard.js
+│   ├── client-dashboard.js
+│   ├── login.js
+│   └── styles.css
+├── server.js
+├── firebase-service-account.json
+├── seed-clients.js
+├── seed-client-config.js
+└── alerts.json
 
----
+📌 Next Steps
+	•	🔒 Improve session storage (Redis, production-grade store)
+	•	📊 Add dashboard analytics (SLA compliance tracking)
+	•	🧰 Build admin dashboard to manage clients
+	•	🧼 Containerize with Docker
+	•	🔁 Setup GitHub Actions for CI/CD
 
-## 🌐 URLs
+⸻
 
-| Dashboard         | URL                             |
-|------------------|----------------------------------|
-| Operator         | http://localhost:3000           |
-| Test Lane        | http://localhost:3000/test-dashboard.html |
-| Client 1         | http://localhost:3000/client1.html |
-| Client 2         | http://localhost:3000/client2.html |
+🛡️ Security
+	•	Passwords stored securely using bcrypt
+	•	Session-based auth for clients and dashboard
+	•	Firestore structured per-client for config isolation
 
----
+⸻
 
-## 🧪 API Integration
+🧑‍💻 Author
 
-### `POST /api/send-alert`
-
-Send a real-time alert to a specific lane.
-
-#### 🔐 API Key Required
-
-Every client lane must send a valid API key in the request header:
-
-\`\`\`http
-POST /api/send-alert
-Content-Type: application/json
-x-api-key: YOUR_API_KEY_HERE
-\`\`\`
-
-#### Example Body
-
-\`\`\`json
-{
-  "title": "🚨 Emergency Simulation",
-  "procedure": "Fire Drill Protocol",
-  "steps": [
-    { "text": "Confirm Dispatch", "completed": false },
-    { "text": "Notify Response Unit", "completed": false }
-  ],
-  "target": "client1"
-}
-\`\`\`
-
-#### API Keys
-
-| Lane      | API Key        |
-|-----------|----------------|
-| client1   | abc123client1  |
-| client2   | abc123client2  |
-
----
-
-## 📋 To-Do for Production
-
-- [ ] Secure API key management (admin tool)
-- [ ] Use bcrypt password hashing
-- [ ] Migrate alerts.json to a database
-- [ ] Add rate limiting and abuse protection
-- [ ] Containerize with Docker
-- [ ] CI/CD integration for deployments
-
----
-
-## 🧪 License
-
-MIT License
-`;
-
-fs.writeFileSync(path.join(__dirname, "README.md"), readmeContent);
-console.log("✅ README.md created.");
->>>>>>> 55f62d5 (📝 Updated README with API key instructions and full architecture overview)
+Built by John van Zyl
+GitHub: @johnvanzyl12

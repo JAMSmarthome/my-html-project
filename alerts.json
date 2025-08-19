@@ -484,5 +484,61 @@
     "type": "new-alert",
     "target": "client1",
     "createdAt": "2025-08-18T21:48:34.956Z"
+  },
+  {
+    "id": 1755593516625,
+    "title": "🚨 TEST ALERT",
+    "steps": [
+      "Check connection to control room",
+      "Simulate response from operator",
+      "Record acknowledgement log"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "test",
+    "createdAt": "2025-08-19T08:51:56.625Z",
+    "completedAt": "2025-08-19T08:52:02.735Z"
+  },
+  {
+    "id": 1755593576488,
+    "title": "🚨 TEST ALERT",
+    "steps": [
+      "Check connection to control room",
+      "Simulate response from operator",
+      "Record acknowledgement log"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "test",
+    "createdAt": "2025-08-19T08:52:56.488Z",
+    "completedAt": "2025-08-19T08:53:03.438Z"
+  },
+  {
+    "id": 1755593642721,
+    "title": "🚨 TEST ALERT",
+    "steps": [
+      "Check connection to control room",
+      "Simulate response from operator",
+      "Record acknowledgement log"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "test",
+    "createdAt": "2025-08-19T08:54:02.721Z",
+    "completedAt": "2025-08-19T08:54:10.137Z"
+  },
+  {
+    "id": 1755593685420,
+    "title": "🚨 TEST ALERT",
+    "steps": [
+      "Check connection to control room",
+      "Simulate response from operator",
+      "Record acknowledgement log"
+    ],
+    "sla": 300,
+    "type": "new-alert",
+    "target": "test",
+    "createdAt": "2025-08-19T08:54:45.420Z",
+    "completedAt": "2025-08-19T08:54:51.686Z"
   }
 ]
