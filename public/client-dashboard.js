@@ -1,68 +1,120 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const loginForm = document.getElementById("login-form");
-  const loginSection = document.getElementById("login-section");
-  const dashboard = document.getElementById("dashboard");
-  const logoutBtn = document.getElementById("logout-btn");
+let config = null;
 
-  loginForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
+document.getElementById("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
 
-    const res = await fetch("/api/client-login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ username, password }),
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      loginSection.style.display = "none";
-      dashboard.style.display = "block";
-      fetchConfig();
-    } else {
-      document.getElementById("login-error").textContent = data.error || "Login failed";
-    }
+  const res = await fetch("/api/client-login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
   });
 
-  logoutBtn.addEventListener("click", async () => {
-    await fetch("/api/logout", { method: "POST", credentials: "include" });
-    location.reload();
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById("login-section").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+    fetchConfigAndStart();
+  } else {
+    document.getElementById("login-error").textContent = "Login failed";
+  }
+});
+
+document.getElementById("logout-btn").addEventListener("click", async () => {
+  await fetch("/api/client-logout", { method: "POST" });
+  location.reload();
+});
+
+document.getElementById("save-config").addEventListener("click", async () => {
+  const updatedScenarios = {};
+  document.querySelectorAll("#scenariosContainer input[type=checkbox]").forEach(cb => {
+    updatedScenarios[cb.dataset.scenario] = cb.checked;
   });
 
-  async function fetchConfig() {
-    const res = await fetch("/api/client-config", {
-      credentials: "include",
-    });
+  const newConfig = {
+    testFrequencyMinutes: parseInt(document.getElementById("testFrequency").value),
+    enabledScenarios: updatedScenarios
+  };
 
-    if (!res.ok) return alert("Failed to fetch config");
-    const { config } = await res.json();
+  const res = await fetch("/api/client-config", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ config: newConfig }),
+  });
 
-    document.getElementById("testFrequency").value = config.testFrequencyMinutes || 60;
-    document.getElementById("fire").checked = config.enabledScenarios?.fire || false;
-    document.getElementById("evacuation").checked = config.enabledScenarios?.evacuation || false;
-    document.getElementById("systemDown").checked = config.enabledScenarios?.systemDown || false;
+  if (res.ok) {
+    document.getElementById("save-status").textContent = "✅ Saved!";
+    config = newConfig;
+    resetTestTimer();
+  } else {
+    document.getElementById("save-status").textContent = "❌ Save failed";
+  }
+});
+
+document.getElementById("addScenarioBtn").addEventListener("click", () => {
+  const name = document.getElementById("newScenarioName").value.trim();
+  if (!name || config.enabledScenarios.hasOwnProperty(name)) {
+    alert("Invalid or duplicate scenario name");
+    return;
   }
 
-  document.getElementById("save-config").addEventListener("click", async () => {
-    const testFrequency = parseInt(document.getElementById("testFrequency").value);
-    const enabledScenarios = {
-      fire: document.getElementById("fire").checked,
-      evacuation: document.getElementById("evacuation").checked,
-      systemDown: document.getElementById("systemDown").checked,
-    };
-
-    const res = await fetch("/api/client-config", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ config: { testFrequencyMinutes: testFrequency, enabledScenarios } }),
-    });
-
-    const data = await res.json();
-    document.getElementById("save-status").textContent = data.success
-      ? "✔ Config saved successfully"
-      : "❌ Failed to save config";
-  });
+  config.enabledScenarios[name] = true;
+  renderScenarios();
+  document.getElementById("newScenarioName").value = "";
 });
+
+async function fetchConfigAndStart() {
+  const res = await fetch("/api/client-config");
+  const data = await res.json();
+  config = data.config;
+  document.getElementById("testFrequency").value = config.testFrequencyMinutes;
+  renderScenarios();
+  resetTestTimer();
+}
+
+function renderScenarios() {
+  const container = document.getElementById("scenariosContainer");
+  container.innerHTML = "";
+
+  Object.entries(config.enabledScenarios).forEach(([name, enabled]) => {
+    const label = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = enabled;
+    cb.dataset.scenario = name;
+
+    label.appendChild(cb);
+    label.append(` ${name}`);
+    container.appendChild(label);
+    container.appendChild(document.createElement("br"));
+  });
+}
+
+let testTimer = null;
+
+function resetTestTimer() {
+  if (testTimer) clearInterval(testTimer);
+
+  const ms = config.testFrequencyMinutes * 60 * 1000;
+  testTimer = setInterval(() => {
+    triggerTestAlert();
+  }, ms);
+}
+
+function triggerTestAlert() {
+  const enabled = Object.entries(config.enabledScenarios)
+    .filter(([_, val]) => val)
+    .map(([key]) => key);
+
+  if (enabled.length === 0) return;
+
+  const scenario = enabled[Math.floor(Math.random() * enabled.length)];
+  const alertBox = document.getElementById("alertBox");
+  alertBox.innerText = `🚨 New Scenario Triggered: ${scenario.toUpperCase()}`;
+  alertBox.style.display = "block";
+
+  setTimeout(() => {
+    alertBox.style.display = "none";
+  }, 10000);
+}
