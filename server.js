@@ -29,7 +29,73 @@ app.use(
   })
 );
 
-// Admin login
+// ========== ✅ CLIENT LOGIN ==========
+app.post("/api/client-login", async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password)
+    return res.status(400).json({ error: "Missing credentials" });
+
+  try {
+    const snapshot = await db
+      .collection("clients")
+      .where("username", "==", username)
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) return res.status(401).json({ error: "User not found" });
+
+    const clientDoc = snapshot.docs[0];
+    const client = clientDoc.data();
+
+    const valid = await bcrypt.compare(password, client.password);
+    if (!valid) return res.status(401).json({ error: "Invalid password" });
+
+    req.session.user = {
+      username: client.username,
+      lane: client.lane,
+      isClient: true,
+      clientId: clientDoc.id,
+    };
+
+    res.json({ success: true, lane: client.lane });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ========== ✅ CLIENT CONFIG - GET ==========
+app.get("/api/client-config", async (req, res) => {
+  if (!req.session.user?.isClient)
+    return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    const doc = await db.collection("clients").doc(req.session.user.clientId).get();
+    const client = doc.data();
+
+    res.json({ config: client.config || {} });
+  } catch (err) {
+    console.error("Fetch error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ========== ✅ CLIENT CONFIG - PUT ==========
+app.put("/api/client-config", async (req, res) => {
+  if (!req.session.user?.isClient)
+    return res.status(401).json({ error: "Unauthorized" });
+
+  const { config } = req.body;
+  try {
+    await db.collection("clients").doc(req.session.user.clientId).update({ config });
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Update error:", err);
+    res.status(500).json({ error: "Update failed" });
+  }
+});
+
+// ========== ✅ ADMIN LOGIN ==========
 app.post("/api/admin-login", (req, res) => {
   const { username, password } = req.body;
   if (username === "admin" && password === "admin123") {
@@ -39,13 +105,13 @@ app.post("/api/admin-login", (req, res) => {
   return res.status(401).json({ error: "Invalid admin credentials" });
 });
 
-// Admin logout
+// ========== ✅ ADMIN LOGOUT ==========
 app.post("/api/admin-logout", (req, res) => {
   req.session.destroy();
   res.json({ success: true });
 });
 
-// Fetch all client configs
+// ========== ✅ ADMIN CONFIG GET ALL ==========
 app.get("/api/admin/configs", async (req, res) => {
   if (!req.session.user?.isAdmin)
     return res.status(401).json({ error: "Unauthorized" });
@@ -65,7 +131,7 @@ app.get("/api/admin/configs", async (req, res) => {
   }
 });
 
-// Update a specific client config
+// ========== ✅ ADMIN CONFIG UPDATE ==========
 app.put("/api/admin/configs/:clientId", async (req, res) => {
   if (!req.session.user?.isAdmin)
     return res.status(401).json({ error: "Unauthorized" });
@@ -82,7 +148,7 @@ app.put("/api/admin/configs/:clientId", async (req, res) => {
   }
 });
 
-// Start server
+// ========== ✅ SERVER START ==========
 app.listen(PORT, () => {
   console.log(`🚨 Server running on http://localhost:${PORT}`);
 });

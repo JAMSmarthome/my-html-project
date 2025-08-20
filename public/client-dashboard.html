@@ -2,146 +2,42 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Client Dashboard</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 2em;
-    }
-    .hidden {
-      display: none;
-    }
-    #configUI label {
-      display: block;
-      margin-bottom: 1em;
-    }
-    small {
-      display: block;
-      margin-left: 1.5em;
-    }
-    button {
-      padding: 0.5em 1em;
-      margin-top: 1em;
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <h1>Client Dashboard</h1>
-
-  <div id="loginForm">
-    <h2>Login</h2>
-    <input type="text" id="username" placeholder="Username" /><br />
-    <input type="password" id="password" placeholder="Password" /><br />
-    <button onclick="login()">Login</button>
+  <div id="login-section">
+    <h2>Client Login</h2>
+    <form id="login-form">
+      <input type="text" id="username" placeholder="Username" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+    </form>
+    <div id="login-error" style="color: red;"></div>
   </div>
 
-  <div id="configUI" class="hidden">
-    <h2>
-      Configuration
-      <button id="logoutBtn" style="float: right; background: #dc3545; color: white;">Logout</button>
-    </h2>
+  <div id="dashboard" style="display: none;">
+    <h2>Welcome to Client Dashboard</h2>
+    <button id="logout-btn">Logout</button>
+
+    <h3>Test Scenario Configuration</h3>
     <label>
-      Test Frequency (minutes):
-      <input type="number" id="testFrequencyMinutes" min="1" />
+      Test Frequency (Minutes):
+      <input type="number" id="testFrequency" />
     </label>
-
+    <br><br>
     <fieldset>
-      <legend><strong>Enabled Scenarios</strong></legend>
-
-      <label>
-        <input type="checkbox" id="fire" />
-        <strong>Fire Scenario</strong><br />
-        <small style="color: gray;">Simulates a fire alert requiring evacuation procedures.</small>
-      </label>
-
-      <label>
-        <input type="checkbox" id="evacuation" />
-        <strong>Evacuation Scenario</strong><br />
-        <small style="color: gray;">Simulates general building evacuation, not fire-related.</small>
-      </label>
-
-      <label>
-        <input type="checkbox" id="systemDown" />
-        <strong>System Down Scenario</strong><br />
-        <small style="color: gray;">Simulates a major IT system outage requiring recovery protocol.</small>
-      </label>
+      <legend>Enabled Scenarios</legend>
+      <label><input type="checkbox" id="fire" /> Fire Alert - 🔥</label><br>
+      <label><input type="checkbox" id="evacuation" /> Evacuation - 🏃‍♂️🏃‍♀️</label><br>
+      <label><input type="checkbox" id="systemDown" /> System Down - ⚠️</label>
     </fieldset>
-
-    <button onclick="saveConfig()">Save Configuration</button>
+    <br>
+    <button id="save-config">Save Config</button>
+    <div id="save-status"></div>
   </div>
 
-  <script>
-    async function login() {
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-
-      const res = await fetch("/api/client-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        document.getElementById("loginForm").classList.add("hidden");
-        document.getElementById("configUI").classList.remove("hidden");
-        loadConfig();
-      } else {
-        alert(data.error || "Login failed");
-      }
-    }
-
-    async function loadConfig() {
-      const res = await fetch("/api/client-config");
-      const data = await res.json();
-      if (data.config) {
-        document.getElementById("testFrequencyMinutes").value = data.config.testFrequencyMinutes;
-        document.getElementById("fire").checked = data.config.enabledScenarios.fire;
-        document.getElementById("evacuation").checked = data.config.enabledScenarios.evacuation;
-        document.getElementById("systemDown").checked = data.config.enabledScenarios.systemDown;
-      }
-    }
-
-    async function saveConfig() {
-      const config = {
-        testFrequencyMinutes: parseInt(document.getElementById("testFrequencyMinutes").value),
-        enabledScenarios: {
-          fire: document.getElementById("fire").checked,
-          evacuation: document.getElementById("evacuation").checked,
-          systemDown: document.getElementById("systemDown").checked,
-        },
-      };
-
-      const res = await fetch("/api/client-config", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ config }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        alert("Configuration updated!");
-      } else {
-        alert(data.error || "Update failed");
-      }
-    }
-
-    document.getElementById("logoutBtn").addEventListener("click", async () => {
-      await fetch("/api/client-logout", { method: "POST" });
-      location.reload();
-    });
-
-    async function checkSession() {
-      const res = await fetch("/api/client-config");
-      const data = await res.json();
-      if (data.config) {
-        document.getElementById("loginForm").classList.add("hidden");
-        document.getElementById("configUI").classList.remove("hidden");
-        loadConfig();
-      }
-    }
-
-    checkSession();
-  </script>
+  <script src="client-dashboard.js"></script>
 </body>
 </html>
