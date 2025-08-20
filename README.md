@@ -1,94 +1,116 @@
 # 🚨 Emergency Test System
 
-A full-stack Node.js + Firebase platform for simulating emergency alerts, measuring SLA compliance, and providing isolated dashboards for clients to manage test scenarios and configurations.
+A web-based emergency scenario testing platform for training and monitoring operators and clients in real-time. Built with **Node.js**, **Express**, **Firebase Firestore**, and **HTML/CSS/JS**.
 
 ---
 
-## ✨ Features
+## 🌐 Features
 
-### 🔐 Client Dashboard
-- Secure login using hashed credentials (bcrypt)
-- View & edit per-client test configurations:
-  - `testFrequencyMinutes`: frequency of test alerts
-  - `enabledScenarios`: fire, evacuation, system down, etc.
-- Logout support
-- Scenario toggle UI with per-scenario descriptions
-- Session-based access
+### ✅ Client Dashboard (`client-dashboard.html`)
+- Secure login with Firebase credentials
+- Test alert timer (interval-based)
+- Scenario management:
+  - View current scenario config
+  - Enable/disable existing scenarios
+  - Add new scenarios dynamically
+- Save configurations to Firestore
+- Logout functionality
 
-### 🧪 Emergency Alert Simulation
-- Trigger alerts randomly or manually
-- SLA tracking: acknowledgment and completion timers
-- Animated UI for test-dashboard and mock clients
-- CSV export for logs (test + mock)
-- `target`-based alert routing for multi-lane support
+### 🛠️ Admin Dashboard (`admin-dashboard.html`)
+- Admin login (`admin` / `admin123`)
+- View all registered clients
+- Edit individual client configurations
+- Update Firestore config for each client
+- Logout functionality
 
-### ⚙️ Admin Tools
-- Seed clients and default configuration into Firestore
-- Session-based `/api/client-config` GET/PUT endpoints
-- Separate dashboards for control room (admin) and clients
-- Client config stored securely in Firestore with hashed passwords
+### 🔐 Authentication
+- Client login is validated using credentials stored in Firebase
+- Passwords are **hashed using bcrypt**
+- Session-based auth using `express-session`
+
+### ☁️ Firebase Integration
+- All client data is stored in the `clients` collection in Firestore
+- Configurations are persisted per client, including:
+  - `testFrequencyMinutes`
+  - `enabledScenarios` (key-value pairs for all scenarios)
 
 ---
 
-## 🚀 Getting Started
+## 📁 Project Structure
+emergency-test-system/
+│
+├── public/
+│   ├── client-dashboard.html
+│   ├── client-dashboard.js
+│   ├── admin-dashboard.html
+│   ├── admin-dashboard.js
+│   ├── styles.css
+│
+├── server.js
+├── firebase-service-account.json
+├── README.md
+├── package.json
 
-### 1. Clone the Repo
+---
+
+## 🔧 Setup Instructions
+
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/emergency-test-system.git
+git clone https://github.com/JAMSmarthome/my-html-project.git
 cd emergency-test-system
 
-2. Install Dependencies
-npm install
+2. Install Dependencies - npm install
 
-3. Add Firebase Credentials
+3. Firebase Configuration
 
-Place your Firebase Admin SDK key in the project root: touch firebase-service-account.json
+Place your Firebase Admin SDK JSON as firebase-service-account.json in the root directory.
 
-🧪 Running the Server
-node server.js
+4. Run the Server - node server.js
+   Server runs on: http://localhost:3000
 
-Server runs at:
-http://localhost:3000
+🔐 Logins
 
-🌐 Dashboards
-	•	Operator/Admin Dashboard: http://localhost:3000/index.html
-	•	Test Dashboard: http://localhost:3000/test-dashboard.html
-	•	Client Config Dashboard: http://localhost:3000/client-dashboard.html
+Admin
+	•	Username: admin
+	•	Password: admin123
+
+Clients
+
+Add client users manually to Firestore: 
+
+{
+  "username": "testuser",
+  "password": "$2b$10$HASHED_PASSWORD",
+  "lane": "test",
+  "config": {
+    "testFrequencyMinutes": 20,
+    "enabledScenarios": {
+      "Fire Alert": true,
+      "Medical Alert": true
+    }
+  }
+}
+
+You can hash a password using:
+
+const bcrypt = require('bcrypt');
+bcrypt.hashSync('yourPassword', 10);
+
+✅ Recent Updates
+	•	Added client login/logout
+	•	Dynamically add new scenarios from the dashboard
+	•	Fully working admin config editor
+	•	UI styling refinements
+	•	Full Firebase Firestore integration
+	•	GitHub repo push with latest features
 
 ⸻
 
-🔄 Seeding Clients (Optional)
+🧪 Test Scenarios
 
-Run the following scripts to populate Firestore with example clients and default config:
-
-node seed-clients.js
-node seed-client-config.js
-
-📁 Folder Structure
-
-emergency-test-system/
-├── public/
-│   ├── index.html
-│   ├── test-dashboard.html
-│   ├── client-dashboard.html
-│   ├── script.js
-│   ├── test-dashboard.js
-│   ├── client-dashboard.js
-│   ├── login.js
-│   └── styles.css
-├── server.js
-├── firebase-service-account.json
-├── seed-clients.js
-├── seed-client-config.js
-└── alerts.json
-
-📌 Next Steps
-	•	🔒 Improve session storage (Redis, production-grade store)
-	•	📊 Add dashboard analytics (SLA compliance tracking)
-	•	🧰 Build admin dashboard to manage clients
-	•	🧼 Containerize with Docker
-	•	🔁 Setup GitHub Actions for CI/CD
+Once logged in, the system will trigger alerts at the interval specified in testFrequencyMinutes using one of the enabled scenarios at random.
 
 ⸻
 
@@ -102,4 +124,6 @@ emergency-test-system/
 🧑‍💻 Author
 
 Built by John van Zyl
-GitHub: @johnvanzyl12
+GitHub: @johnvanzyl12.
+
+📄 Licensed
