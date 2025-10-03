@@ -2,21 +2,28 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mock Client</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <title>Mock Client Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div id="login-container">
-    <h2>🤖 Mock Client Login</h2>
-    <input type="text" id="clientId" placeholder="Enter mock client name" value="MockClient1" />
-    <button id="connectBtn">Connect</button>
+  <h1>Mock Client Dashboard (MockClient1)</h1>
+
+  <div id="login-section">
+    <input type="text" id="username" placeholder="Username" />
+    <input type="password" id="password" placeholder="Password" />
+    <button id="login-button">Login</button>
+    <div id="login-error" style="color: red;"></div>
   </div>
 
   <div id="dashboard" style="display: none;">
-    <h2>Mock Client Connected</h2>
-    <p><strong>Client ID:</strong> <span id="clientIdDisplay"></span></p>
-    <div id="log"><p>Waiting for alerts...</p></div>
+    <h2>Active Alert</h2>
+    <div id="active-alert"></div>
+    <button id="acknowledge-button">Acknowledge</button>
+    <div id="checklist-section" style="display: none;">
+      <h3>Checklist</h3>
+      <ul id="checklist"></ul>
+      <button id="complete-button">Complete Alert</button>
+    </div>
   </div>
 
   <script src="js/mock-client.js"></script>

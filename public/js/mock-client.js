@@ -1,98 +1,102 @@
-let currentAlert = null;
-let checklistSteps = [];
-const logContainer = document.getElementById("log");
-const clientIdInput = document.getElementById("clientId");
-const connectBtn = document.getElementById("connectBtn");
-const dashboard = document.getElementById("dashboard");
+// public/js/mock-client.js
+
+let currentUser = null;
+let currentLane = null;
+let eventSource = null;
+let activeAlert = null;
+
+// Elements
 const loginContainer = document.getElementById("login-container");
-const clientIdDisplay = document.getElementById("clientIdDisplay");
+const dashboard = document.getElementById("main-dashboard");
+const usernameInput = document.getElementById("username");
+const passwordInput = document.getElementById("password");
+const loginBtn = document.getElementById("loginBtn");
+const loginError = document.getElementById("login-error");
+const activeAlertDiv = document.getElementById("active-alert");
+const logDiv = document.getElementById("log");
 
-function log(message) {
-  const p = document.createElement("p");
-  p.textContent = message;
-  logContainer.appendChild(p);
-  logContainer.scrollTop = logContainer.scrollHeight;
-}
+// --- Login ---
+loginBtn.addEventListener("click", async () => {
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value.trim();
 
-// Establish connection after clicking "Connect"
-connectBtn.addEventListener("click", () => {
-  const clientId = clientIdInput.value.trim();
-  if (!clientId) {
-    alert("Please enter a mock client name.");
+  const res = await fetch("/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+
+  const data = await res.json();
+  if (!data.success) {
+    loginError.textContent = data.error || "Login failed";
     return;
   }
 
-  // Hide login and show dashboard
+  currentUser = username;
+  currentLane = data.lane;
+
   loginContainer.style.display = "none";
   dashboard.style.display = "block";
-  clientIdDisplay.textContent = clientId;
 
-  // Connect with SSE and listen only to 'mock' dashboard alerts
-  const eventSource = new EventSource("/api/sse?type=mock");
-
-  eventSource.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    if (data.type === "new-alert") {
-      handleAlert(data.alert);
-    } else if (data.type === "acknowledgment") {
-      log(`✅ Alert ${data.alertId} acknowledged by ${data.acknowledgedBy}`);
-    } else if (data.type === "alert-completed") {
-      log(`✅ Alert ${data.alertId} completed by ${data.completedBy}`);
-    }
-  };
+  connectSSE();
 });
 
+// --- SSE Connection ---
+function connectSSE() {
+  eventSource = new EventSource("/api/sse");
+
+  eventSource.onmessage = (event) => {
+    const alert = JSON.parse(event.data);
+    handleAlert(alert);
+  };
+
+  eventSource.onerror = () => {
+    console.error("SSE connection lost. Reconnecting...");
+    eventSource.close();
+    setTimeout(connectSSE, 3000);
+  };
+}
+
+// --- Handle Alerts ---
 function handleAlert(alert) {
-  currentAlert = alert;
-  checklistSteps = alert.steps.map(step => ({ text: step, completed: false }));
+  if (alert.status === "active") {
+    activeAlert = alert;
+    activeAlertDiv.innerHTML = `
+      <h2>🚨 Alert</h2>
+      <p>${alert.message}</p>
+      <button onclick="acknowledgeAlert(${alert.id})">Acknowledge</button>
+    `;
+  } else if (alert.status === "acknowledged") {
+    activeAlertDiv.innerHTML = `
+      <h2>✅ Acknowledged</h2>
+      <p>${alert.message}</p>
+      <button onclick="completeAlert(${alert.id})">Complete</button>
+    `;
+  } else if (alert.status === "completed") {
+    activeAlertDiv.innerHTML = "";
+    logDiv.innerHTML += `<p>✔️ [${alert.timestamp}] ${alert.message} (completed)</p>`;
+    activeAlert = null;
+  }
+}
 
-  log(`🚨 New Alert: ${alert.title} | Procedure: ${alert.procedure}`);
-
-  checklistSteps.forEach((step, i) => {
-    log(`⬜ Step ${i + 1}: ${step.text || step}`);
+// --- Acknowledge ---
+async function acknowledgeAlert(alertId) {
+  const res = await fetch("/api/acknowledge", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ alertId }),
   });
-
-  acknowledgeAlert();
+  const data = await res.json();
+  if (data.success) handleAlert(data.alert);
 }
 
-async function acknowledgeAlert() {
-  if (!currentAlert) return;
-  const client = clientIdInput.value || "MockClient";
-  try {
-    await fetch("/api/acknowledge-from-client", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client,
-        originalTitle: currentAlert.title,
-        receivedAt: new Date().toISOString()
-      })
-    });
-    log(`📬 Acknowledged alert "${currentAlert.title}" as ${client}`);
-    completeAlert(); // Automatically simulate completion
-  } catch (err) {
-    log(`❌ Failed to acknowledge alert: ${err.message}`);
-  }
-}
-
-async function completeAlert() {
-  if (!currentAlert) return;
-  const client = clientIdInput.value || "MockClient";
-  checklistSteps.forEach(s => (s.completed = true));
-
-  try {
-    await fetch("/api/complete-alert", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        alertId: currentAlert.id,
-        completedBy: client,
-        steps: checklistSteps
-      })
-    });
-    log(`✅ Completed alert "${currentAlert.title}" as ${client}`);
-    currentAlert = null;
-  } catch (err) {
-    log(`❌ Failed to complete alert: ${err.message}`);
-  }
+// --- Complete ---
+async function completeAlert(alertId) {
+  const res = await fetch("/api/complete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ alertId }),
+  });
+  const data = await res.json();
+  if (data.success) handleAlert(data.alert);
 }

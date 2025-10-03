@@ -1,120 +1,99 @@
-let config = null;
+document.addEventListener("DOMContentLoaded", () => {
+  const loginSection = document.getElementById("login-section");
+  const dashboard = document.getElementById("dashboard");
+  const loginForm = document.getElementById("login-form");
+  const loginError = document.getElementById("login-error");
+  const logoutBtn = document.getElementById("logout-btn");
+  const saveBtn = document.getElementById("save-config");
+  const saveStatus = document.getElementById("save-status");
+  const scenariosContainer = document.getElementById("scenariosContainer");
+  const testFrequencyInput = document.getElementById("testFrequency");
+  const newScenarioInput = document.getElementById("newScenarioName");
+  const addScenarioBtn = document.getElementById("addScenarioBtn");
 
-document.getElementById("login-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const username = document.getElementById("username").value;
-  const password = document.getElementById("password").value;
-
-  const res = await fetch("/api/client-login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
-
-  const data = await res.json();
-  if (data.success) {
-    document.getElementById("login-section").style.display = "none";
-    document.getElementById("dashboard").style.display = "block";
-    fetchConfigAndStart();
-  } else {
-    document.getElementById("login-error").textContent = "Login failed";
-  }
-});
-
-document.getElementById("logout-btn").addEventListener("click", async () => {
-  await fetch("/api/client-logout", { method: "POST" });
-  location.reload();
-});
-
-document.getElementById("save-config").addEventListener("click", async () => {
-  const updatedScenarios = {};
-  document.querySelectorAll("#scenariosContainer input[type=checkbox]").forEach(cb => {
-    updatedScenarios[cb.dataset.scenario] = cb.checked;
-  });
-
-  const newConfig = {
-    testFrequencyMinutes: parseInt(document.getElementById("testFrequency").value),
-    enabledScenarios: updatedScenarios
+  let currentConfig = {
+    enabledScenarios: {},
+    testFrequency: 0,
   };
 
-  const res = await fetch("/api/client-config", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ config: newConfig }),
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    const res = await fetch("/api/client-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+
+    if (res.ok) {
+      loginSection.style.display = "none";
+      dashboard.style.display = "block";
+      loadConfig();
+    } else {
+      loginError.textContent = "Login failed.";
+    }
   });
 
-  if (res.ok) {
-    document.getElementById("save-status").textContent = "✅ Saved!";
-    config = newConfig;
-    resetTestTimer();
-  } else {
-    document.getElementById("save-status").textContent = "❌ Save failed";
-  }
-});
-
-document.getElementById("addScenarioBtn").addEventListener("click", () => {
-  const name = document.getElementById("newScenarioName").value.trim();
-  if (!name || config.enabledScenarios.hasOwnProperty(name)) {
-    alert("Invalid or duplicate scenario name");
-    return;
-  }
-
-  config.enabledScenarios[name] = true;
-  renderScenarios();
-  document.getElementById("newScenarioName").value = "";
-});
-
-async function fetchConfigAndStart() {
-  const res = await fetch("/api/client-config");
-  const data = await res.json();
-  config = data.config;
-  document.getElementById("testFrequency").value = config.testFrequencyMinutes;
-  renderScenarios();
-  resetTestTimer();
-}
-
-function renderScenarios() {
-  const container = document.getElementById("scenariosContainer");
-  container.innerHTML = "";
-
-  Object.entries(config.enabledScenarios).forEach(([name, enabled]) => {
-    const label = document.createElement("label");
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.checked = enabled;
-    cb.dataset.scenario = name;
-
-    label.appendChild(cb);
-    label.append(` ${name}`);
-    container.appendChild(label);
-    container.appendChild(document.createElement("br"));
+  logoutBtn.addEventListener("click", async () => {
+    await fetch("/api/client-logout", { method: "POST" });
+    location.reload();
   });
-}
 
-let testTimer = null;
+  saveBtn.addEventListener("click", async () => {
+    currentConfig.testFrequency = parseInt(testFrequencyInput.value || "0");
+    const checkboxes = document.querySelectorAll(".scenario-checkbox");
+    checkboxes.forEach((checkbox) => {
+      currentConfig.enabledScenarios[checkbox.dataset.name] = checkbox.checked;
+    });
 
-function resetTestTimer() {
-  if (testTimer) clearInterval(testTimer);
+    const res = await fetch("/api/client-config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ config: currentConfig }),
+    });
 
-  const ms = config.testFrequencyMinutes * 60 * 1000;
-  testTimer = setInterval(() => {
-    triggerTestAlert();
-  }, ms);
-}
+    if (res.ok) {
+      saveStatus.textContent = "Config saved!";
+      setTimeout(() => (saveStatus.textContent = ""), 2000);
+    } else {
+      saveStatus.textContent = "Failed to save config.";
+    }
+  });
 
-function triggerTestAlert() {
-  const enabled = Object.entries(config.enabledScenarios)
-    .filter(([_, val]) => val)
-    .map(([key]) => key);
+  addScenarioBtn.addEventListener("click", () => {
+    const name = newScenarioInput.value.trim();
+    if (!name) return;
 
-  if (enabled.length === 0) return;
+    if (!currentConfig.enabledScenarios) currentConfig.enabledScenarios = {};
+    currentConfig.enabledScenarios[name] = true;
+    newScenarioInput.value = "";
+    renderScenarios();
+  });
 
-  const scenario = enabled[Math.floor(Math.random() * enabled.length)];
-  const alertBox = document.getElementById("alertBox");
-  alertBox.innerText = `🚨 New Scenario Triggered: ${scenario.toUpperCase()}`;
-  alertBox.style.display = "block";
+  async function loadConfig() {
+    const res = await fetch("/api/client-config");
+    if (!res.ok) return;
+    const data = await res.json();
+    currentConfig = data.config || { enabledScenarios: {}, testFrequency: 0 };
+    testFrequencyInput.value = currentConfig.testFrequency || "";
+    renderScenarios();
+  }
 
-  setTimeout(() => {
-    alertBox.style.display = "none";
-  }, 10000);
-}
+  function renderScenarios() {
+    scenariosContainer.innerHTML = "";
+    const scenarios = Object.keys(currentConfig.enabledScenarios || {});
+    scenarios.forEach((name) => {
+      const label = document.createElement("label");
+      label.innerHTML = `
+        <input type="checkbox" class="scenario-checkbox" data-name="${name}" ${
+        currentConfig.enabledScenarios[name] ? "checked" : ""
+      }>
+        ${name}
+      `;
+      scenariosContainer.appendChild(label);
+      scenariosContainer.appendChild(document.createElement("br"));
+    });
+  }
+});
