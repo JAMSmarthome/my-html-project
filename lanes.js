@@ -1,16 +1,5 @@
-// lanes.js
-
-module.exports = {
-  test: {
-    name: "Test Lane",
-    apiKey: "APIKEY_TEST"
-  },
-  client1: {
-    name: "Client 1",
-    apiKey: "APIKEY_CLIENT1"
-  },
-  client2: {
-    name: "Client 2",
-    apiKey: "APIKEY_CLIENT2"
-  }
-};
+[
+  { "name": "Lane A", "status": "Active" },
+  { "name": "Lane B", "status": "Standby" },
+  { "name": "Lane C", "status": "Offline" }
+]

@@ -1,0 +1,14 @@
+{
+  "admin": {
+    "passwordHash": "$2b$10$1lmXJjSmPXQ/HKfiV9Oab.E7C5r28Gd9sNXvjuU/n7E32Dj9VTh4i",
+    "lane": "operator"
+  },
+  "client1": {
+    "passwordHash": "$2b$10$c4fKEY9awZ.NgJoDChmYDOmsZlad3Ix6G0nGN9.ZAzq3tqDC.3.1W",
+    "lane": "Client1"
+  },
+  "client2": {
+    "passwordHash": "$2b$10$KYKdfENKihc/r6GoslotkeEG9TVxOJo5Ov1AFXjvwEhtt1Ob9i5.W",
+    "lane": "Client2"
+  }
+}

@@ -1,50 +1,45 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Client Dashboard</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>Emergency Test System - Client Dashboard</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .alert {
+      background: #ff4d4d;
+      color: white;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+    .alert button {
+      background: #fff;
+      color: #ff4d4d;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
   <div id="login-section">
-    <h2>Client Login</h2>
     <form id="login-form">
-      <input type="text" id="username" placeholder="Username" required />
-      <input type="password" id="password" placeholder="Password" required />
+      <input type="text" id="username" placeholder="Username" required>
+      <input type="password" id="password" placeholder="Password" required>
       <button type="submit">Login</button>
+      <p id="login-error"></p>
     </form>
-    <div id="login-error" style="color: red;"></div>
   </div>
-
-  <div id="alertBox" style="display:none; margin-top: 20px; background: red; color: white; padding: 10px; font-weight: bold;"></div>
-
   <div id="dashboard" style="display: none;">
-    <h2>Welcome to Client Dashboard</h2>
     <button id="logout-btn">Logout</button>
-
-    <h3>Test Scenario Configuration</h3>
-    <label>
-      Test Frequency (Minutes):
-      <input type="number" id="testFrequency" />
-    </label>
-
-    <br><br>
-    <fieldset>
-      <legend>Enabled Scenarios</legend>
-      <div id="scenariosContainer"></div>
-    </fieldset>
-
-    <br>
-    <h4>Add New Scenario</h4>
-    <input type="text" id="newScenarioName" placeholder="Scenario name" />
-    <button id="addScenarioBtn">Add Scenario</button>
-
-    <br><br>
+    <h2>Configure Alerts</h2>
+    <label>Test Frequency (minutes): <input type="number" id="testFrequency"></label>
+    <div id="scenariosContainer"></div>
+    <label>Add Scenario: <input type="text" id="newScenarioName"></label>
+    <button id="addScenarioBtn">Add</button>
     <button id="save-config">Save Config</button>
-    <div id="save-status"></div>
+    <p id="save-status"></p>
+    <div id="alertsContainer"></div> <!-- Added for alerts -->
   </div>
-
-  <script src="client-dashboard.js"></script>
+  <script src="/client-dashboard.js"></script>
 </body>
 </html>
